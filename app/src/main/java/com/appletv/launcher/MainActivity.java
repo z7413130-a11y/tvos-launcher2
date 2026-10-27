@@ -119,7 +119,8 @@ public class MainActivity extends Activity {
         dockApps.clear();
         gridApps.clear();
 
-        int limit = Math.min(5, allApps.size());
+        // Ровно 6 иконок в верхнем доке, как на референсе Apple TV
+        int limit = Math.min(6, allApps.size());
         for (int i = 0; i < limit; i++) {
             dockApps.add(allApps.get(i));
         }
@@ -151,12 +152,11 @@ public class MainActivity extends Activity {
             container.setOrientation(LinearLayout.VERTICAL);
             container.setGravity(Gravity.CENTER_HORIZONTAL);
             
-            // Прямоугольные пропорции плиток tvOS
-            int width = dpToPx(138);
-            int height = dpToPx(80);
+            int width = dpToPx(132);
+            int height = dpToPx(76);
             
-            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height + dpToPx(32));
-            lp.setMargins(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10));
+            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height + dpToPx(28));
+            lp.setMargins(dpToPx(8), dpToPx(6), dpToPx(8), dpToPx(6));
             container.setLayoutParams(lp);
             container.setFocusable(true);
             container.setClickable(true);
@@ -166,24 +166,22 @@ public class MainActivity extends Activity {
             ViewGroup.LayoutParams cardLp = new ViewGroup.LayoutParams(width, height);
             card.setLayoutParams(cardLp);
             
-            // Закругление углов 18dp в стиле tvOS
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(18));
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(16));
                 }
             });
             card.setClipToOutline(true);
 
             ImageView iv = new ImageView(parent.getContext());
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(48), dpToPx(48), Gravity.CENTER));
+            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(44), dpToPx(44), Gravity.CENTER));
             container.addView(card);
 
-            // Название приложения появляется строго под плиткой при наведении фокуса
             TextView tv = new TextView(parent.getContext());
             tv.setTextColor(Color.WHITE);
-            tv.setTextSize(13);
+            tv.setTextSize(12);
             tv.setTypeface(null, Typeface.BOLD);
             tv.setGravity(Gravity.CENTER);
             tv.setSingleLine(true);
@@ -191,7 +189,7 @@ public class MainActivity extends Activity {
             LinearLayout.LayoutParams tvLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
             );
-            tvLp.setMargins(0, dpToPx(8), 0, 0);
+            tvLp.setMargins(0, dpToPx(6), 0, 0);
             container.addView(tv, tvLp);
 
             return new RecyclerView.ViewHolder(container) {};
@@ -209,18 +207,17 @@ public class MainActivity extends Activity {
             tv.setText(item.label);
 
             GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
-            bg.setCornerRadius(dpToPx(18));
+            bg.setCornerRadius(dpToPx(16));
             card.setBackground(bg);
 
             container.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
-                    // Плавное увеличение карточки (scale 1.15) и появление текста
-                    animateScale(container, 1.15f, 1.15f, dpToPx(24));
-                    tv.animate().alpha(1f).setDuration(160).start();
+                    animateScale(container, 1.15f, 1.15f, dpToPx(20));
+                    tv.animate().alpha(1f).setDuration(150).start();
                     if (heroTitle != null) heroTitle.setText(item.label);
                 } else {
                     animateScale(container, 1.0f, 1.0f, 0f);
-                    tv.animate().alpha(0f).setDuration(140).start();
+                    tv.animate().alpha(0f).setDuration(120).start();
                 }
             });
 
@@ -244,7 +241,7 @@ public class MainActivity extends Activity {
         ObjectAnimator az = ObjectAnimator.ofFloat(view, "translationZ", elev);
         AnimatorSet set = new AnimatorSet();
         set.playTogether(ax, ay, az);
-        set.setDuration(180);
+        set.setDuration(160);
         set.setInterpolator(new DecelerateInterpolator());
         set.start();
     }

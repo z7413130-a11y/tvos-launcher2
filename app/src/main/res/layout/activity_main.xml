@@ -6,13 +6,13 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- Фоновый градиент / размытие -->
+    <!-- Фоновый постер / градиент -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/hero_gradient_overlay" />
 
-    <!-- Единый прокручиваемый контейнер экрана (Viewport Scroll) -->
+    <!-- Единый вертикальный скролл -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -28,28 +28,26 @@
             android:orientation="vertical"
             android:paddingBottom="60dp">
 
-            <!-- ВЕРХНЯЯ ПАНЕЛЬ: Заголовок (слева) и Статус-бар (справа) -->
+            <!-- ВЕРХНЯЯ ЗОНА (Top Shelf): Заголовок слева, Часы/Настройки справа -->
             <RelativeLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
+                android:layout_height="140dp"
                 android:layout_marginHorizontal="64dp"
                 android:clipChildren="false">
 
-                <!-- Главный заголовок секции в левом верхнем углу с отступом -->
                 <TextView
                     android:id="@+id/hero_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_alignParentStart="true"
                     android:layout_centerVertical="true"
-                    android:text="Apple TV"
+                    android:text="The Studio"
                     android:textColor="#FFFFFF"
-                    android:textSize="32sp"
+                    android:textSize="36sp"
                     android:textStyle="bold"
-                    android:letterSpacing="-0.02" />
+                    android:fontFamily="sans-serif-condensed" />
 
-                <!-- Компактный полупрозрачный статус-бар (часы и настройки) -->
+                <!-- Статус-бар (часы и шестеренка) -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="36dp"
@@ -67,14 +65,14 @@
                         android:format24Hour="HH:mm"
                         android:format12Hour="h:mm a"
                         android:textColor="#CCFFFFFF"
-                        android:textSize="14sp"
+                        android:textSize="13sp"
                         android:textStyle="bold" />
 
                     <FrameLayout
                         android:id="@+id/btn_launcher_settings"
                         android:layout_width="26dp"
                         android:layout_height="26dp"
-                        android:layout_marginStart="10dp"
+                        android:layout_marginStart="8dp"
                         android:focusable="true"
                         android:clickable="true">
 
@@ -89,12 +87,7 @@
                 </LinearLayout>
             </RelativeLayout>
 
-            <!-- Отступ перед Доком -->
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="36dp" />
-
-            <!-- ДОК ИЗБРАННЫХ: Отцентрирован, сужен, с большими отступами от краев -->
+            <!-- ГЛАВНАЯ СТЕКЛЯННАЯ КАПСУЛА С ДОКОМ (В точности как на скриншоте) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -105,7 +98,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/glass_dock_bg"
-                    android:paddingHorizontal="24dp"
+                    android:paddingHorizontal="16dp"
                     android:paddingVertical="12dp"
                     android:clipChildren="false">
 
@@ -118,23 +111,12 @@
                 </FrameLayout>
             </LinearLayout>
 
-            <!-- Заголовок сетки приложений -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="64dp"
-                android:layout_marginTop="48dp"
-                android:layout_marginBottom="16dp"
-                android:text="Все приложения"
-                android:textColor="#88FFFFFF"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <!-- СЕТКА ВСЕХ ПРИЛОЖЕНИЙ (Вертикальный скролл с отступами) -->
+            <!-- СЕТКА ОСТАЛЬНЫХ ПРИЛОЖЕНИЙ -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/grid_recycler"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="36dp"
                 android:clipChildren="false"
                 android:nestedScrollingEnabled="false"
                 android:paddingHorizontal="64dp" />
