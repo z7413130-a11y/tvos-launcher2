@@ -53,8 +53,7 @@ import java.util.Locale
 data class AppModel(
     val packageName: String,
     val label: String,
-    val icon: ImageBitmap,
-    val dominantColor: Color
+    val icon: ImageBitmap
 )
 
 class MainActivity : ComponentActivity() {
@@ -99,44 +98,59 @@ fun AppleTvHomeScreen() {
             .fillMaxSize()
             .background(Color(0xFF000000))
     ) {
-        // --- TOP SHELF (Верхняя промо-зона с градиентом) ---
+        // --- TOP SHELF (Верхняя промо-зона с кинематографичным градиентом как на фото) ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.7f)
+                .fillMaxHeight(0.55f)
                 .align(Alignment.TopCenter)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color(0xFF2C2C2E), Color(0xFF1C1C1E), Color.Black)
+                        colors = listOf(Color(0xFF3A3A3C), Color(0xFF1C1C1E), Color.Black)
                     )
                 )
-        )
+        ) {
+            // Заголовок или логотип в стиле Apple TV Top Shelf
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(60.dp),
+                contentAlignment = Alignment.BottomStart
+            ) {
+                Text(
+                    text = "tv+",
+                    color = Color.White,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
 
-        // --- ГЛАВНАЯ СЕТКА ПРОКРУТКИ ---
+        // --- ГЛАВНАЯ ПРОКРУТКА ---
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 60.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(420.dp))
+                Spacer(modifier = Modifier.height(340.dp))
             }
 
-            // --- 1. DOCK (ИЗБРАННОЕ) С МАТОВЫМ ФОНОМ ---
+            // --- 1. DOCK (ИЗБРАННОЕ) С МАТОВЫМ СТЕКЛОМ ---
             item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 60.dp)
-                        .padding(bottom = 40.dp),
+                        .padding(bottom = 30.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
                             .background(
-                                color = Color(0x33FFFFFF),
+                                color = Color(0x33FFFFFF), // Полупрозрачный белый мат
                                 shape = RoundedCornerShape(32.dp)
                             )
-                            .padding(horizontal = 24.dp, vertical = 20.dp)
+                            .padding(horizontal = 24.dp, vertical = 18.dp)
                     ) {
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
@@ -197,16 +211,19 @@ fun TvosAppIcon(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
+    // Плавное увеличение иконки при фокусе с пульта
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.15f else 1.0f,
+        targetValue = if (isFocused) 1.18f else 1.0f,
         animationSpec = tween(durationMillis = 200), label = "scale"
     )
 
+    // Объемная тень и свечение при фокусе
     val glowAlpha by animateFloatAsState(
-        targetValue = if (isFocused) 0.6f else 0.0f,
+        targetValue = if (isFocused) 0.7f else 0.0f,
         animationSpec = tween(durationMillis = 200), label = "glow"
     )
 
+    // Появление текста ПОД иконкой только при наведении фокуса
     val textAlpha by animateFloatAsState(
         targetValue = if (isFocused) 1f else 0f,
         animationSpec = tween(durationMillis = 200), label = "text"
@@ -215,7 +232,7 @@ fun TvosAppIcon(
     Column(
         modifier = Modifier
             .width(150.dp)
-            .zIndex(if (isFocused) 1f else 0f), 
+            .zIndex(if (isFocused) 10f else 0f), 
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
@@ -226,10 +243,11 @@ fun TvosAppIcon(
                 .drawBehind {
                     if (glowAlpha > 0f) {
                         drawIntoCanvas { canvas ->
+                            // Мягкая глубокая тень
                             val paint = android.graphics.Paint().apply {
                                 color = android.graphics.Color.TRANSPARENT
                                 setShadowLayer(
-                                    45f, 0f, 20f,
+                                    50f, 0f, 22f,
                                     android.graphics.Color.argb((glowAlpha * 255).toInt(), 0, 0, 0)
                                 )
                             }
@@ -237,11 +255,12 @@ fun TvosAppIcon(
                                 0f, 0f, size.width, size.height, 24.dp.toPx(), 24.dp.toPx(), paint
                             )
                             
+                            // Белое свечение контура в стиле tvOS
                             val glowPaint = android.graphics.Paint().apply {
                                 color = android.graphics.Color.TRANSPARENT
                                 setShadowLayer(
-                                    20f, 0f, 0f,
-                                    android.graphics.Color.argb((glowAlpha * 180).toInt(), 255, 255, 255)
+                                    25f, 0f, 0f,
+                                    android.graphics.Color.argb((glowAlpha * 200).toInt(), 255, 255, 255)
                                 )
                             }
                             canvas.nativeCanvas.drawRoundRect(
@@ -264,11 +283,12 @@ fun TvosAppIcon(
             Image(
                 bitmap = app.icon,
                 contentDescription = app.label,
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier.size(62.dp),
                 contentScale = ContentScale.Fit
             )
         }
         
+        // Название приложения появляется снизу при наведении
         Text(
             text = app.label,
             color = Color.White,
@@ -277,7 +297,7 @@ fun TvosAppIcon(
             textAlign = TextAlign.Center,
             maxLines = 1,
             modifier = Modifier
-                .padding(top = 12.dp)
+                .padding(top = 10.dp)
                 .alpha(textAlpha)
         )
     }
@@ -305,7 +325,7 @@ private suspend fun scanInstalledApplications(context: Context): List<AppModel> 
             drawableToBitmap(iconDrawable)
         }
         
-        result.add(AppModel(packageName, label, bitmap.asImageBitmap(), Color.Transparent))
+        result.add(AppModel(packageName, label, bitmap.asImageBitmap()))
     }
     result.sortedBy { it.label.lowercase(Locale.getDefault()) }
 }
