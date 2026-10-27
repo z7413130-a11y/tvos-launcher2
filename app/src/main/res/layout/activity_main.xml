@@ -1,26 +1,164 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#0A0A0C"
-    android:padding="40dp">
+    android:background="#000000"
+    android:clipChildren="false"
+    android:clipToPadding="false">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Мои приложения"
-        android:textColor="#FFFFFF"
-        android:textSize="32sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="24dp" />
+    <!-- 1. TOP SHELF: Верхняя промо-зона (баннер) -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="480dp"
+        android:clipChildren="false">
 
-    <ListView
-        android:id="@+id/apps_list"
+        <ImageView
+            android:id="@+id/hero_banner"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            android:src="@android:color/black" />
+
+        <!-- Градиент глубины поверх постера -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/hero_gradient_overlay" />
+
+        <!-- Эмбиент-подсветка -->
+        <View
+            android:id="@+id/ambient_glow"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0.4" />
+
+        <!-- Заголовок активного приложения (Top Shelf Title) -->
+        <TextView
+            android:id="@+id/hero_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="64dp"
+            android:layout_marginBottom="36dp"
+            android:text="Apple TV"
+            android:textColor="#FFFFFF"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:letterSpacing="-0.02" />
+
+        <!-- Статус-бар в стиле macOS/tvOS справа вверху -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="24dp"
+            android:layout_marginEnd="48dp"
+            android:background="@drawable/status_pill_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp">
+
+            <TextClock
+                android:id="@+id/main_text_clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format24Hour="HH:mm"
+                android:format12Hour="h:mm a"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:id="@+id/btn_launcher_settings"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="12dp"
+                android:focusable="true"
+                android:clickable="true">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="⚙"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp" />
+            </FrameLayout>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- 2. СЕТКА И ПРОКРУТКА КОНТЕНТА -->
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:divider="#222228"
-        android:dividerHeight="12dp"
-        android:focusable="true" />
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:scrollbars="none">
 
-</LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:orientation="vertical">
+
+            <!-- Отступ под Top Shelf -->
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="360dp" />
+
+            <!-- DOCK: Избранные приложения в полупрозрачной стеклянной капсуле -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingBottom="36dp"
+                android:clipChildren="false">
+
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/glass_dock_bg"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="16dp"
+                    android:clipChildren="false">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/dock_recycler"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clipChildren="false"
+                        android:orientation="horizontal" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <!-- Сетка каталога приложений -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/grid_recycler"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipChildren="false"
+                android:nestedScrollingEnabled="false"
+                android:paddingHorizontal="64dp"
+                android:paddingBottom="60dp" />
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Оверлей каталога (Все приложения) -->
+    <FrameLayout
+        android:id="@+id/app_drawer_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC050508"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/drawer_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="60dp" />
+    </FrameLayout>
+
+</RelativeLayout>
