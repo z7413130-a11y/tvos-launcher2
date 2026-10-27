@@ -13,7 +13,7 @@
         android:layout_height="match_parent"
         android:alpha="0.35" />
 
-    <!-- Верхний градиент для скрытия иконок при скролле (чтобы не лезли на заголовок) -->
+    <!-- Верхний градиент для скрытия иконок при скролле -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -33,55 +33,59 @@
             android:layout_height="wrap_content"
             android:clipChildren="false"
             android:orientation="vertical"
-            android:paddingBottom="100dp">
+            android:paddingBottom="120dp">
 
-            <!-- Отступ сверху для экрана №1 -->
+            <!-- Большой отступ сверху, чтобы док был ровно в нижней части экрана №1 -->
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="220dp" />
+                android:layout_height="520dp" />
 
-            <!-- ДОК ИЗБРАННЫХ В МАТОВОЙ СТЕКЛЯННОЙ КАПСУЛЕ (Как в Apple TV) -->
+            <!-- ДОК ИЗБРАННЫХ В СТЕКЛЯННОЙ КАПСУЛЕ (Свободное пространство без обрезки по бокам) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:clipChildren="false">
+                android:clipChildren="false"
+                android:clipToPadding="false">
 
                 <FrameLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/glass_dock_bg"
-                    android:paddingHorizontal="20dp"
+                    android:paddingHorizontal="24dp"
                     android:paddingVertical="14dp"
-                    android:clipChildren="false">
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/dock_recycler"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:clipChildren="false"
+                        android:clipToPadding="false"
                         android:orientation="horizontal" />
                 </FrameLayout>
             </LinearLayout>
 
-            <!-- Отступ перед началом скрытой сетки -->
+            <!-- ОГРОМНЫЙ ОТСТУП: Прячет всю общую сетку приложений далеко вниз за границу экрана -->
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="60dp" />
+                android:layout_height="400dp" />
 
-            <!-- ВСЯ ОСТАЛЬНАЯ СЕТКА ПРИЛОЖЕНИЙ (Скрыта внизу, выезжает при скролле) -->
+            <!-- ВСЯ ОСТАЛЬНАЯ СЕТКА (Появится только при прокрутке вниз) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/grid_recycler"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:clipChildren="false"
+                android:clipToPadding="false"
                 android:nestedScrollingEnabled="false"
                 android:paddingHorizontal="64dp" />
 
         </LinearLayout>
     </ScrollView>
 
-    <!-- ВЕРХНЯЯ СТАТИЧНАЯ ПАНЕЛЬ (Заголовок слева, Часы справа поверх скролла) -->
+    <!-- ВЕРХНЯЯ СТАТИЧНАЯ ПАНЕЛЬ (Заголовок слева, Часы справа) -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="80dp"
