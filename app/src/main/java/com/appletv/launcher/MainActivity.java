@@ -8,12 +8,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Typeface;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -25,7 +22,6 @@ import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.TextClock;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -34,7 +30,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 public class MainActivity extends Activity {
 
@@ -126,7 +121,6 @@ public class MainActivity extends Activity {
         dockApps.clear();
         gridApps.clear();
 
-        // Первые 5-6 приложений отправляем в Dock, остальные в сетку
         int limit = Math.min(6, allApps.size());
         for (int i = 0; i < limit; i++) {
             dockApps.add(allApps.get(i));
@@ -155,51 +149,47 @@ public class MainActivity extends Activity {
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // Контейнер для иконки и текста под ней
             LinearLayout container = new LinearLayout(parent.getContext());
             container.setOrientation(LinearLayout.VERTICAL);
             container.setGravity(Gravity.CENTER_HORIZONTAL);
             
-            int width = isDock ? dpToPx(150) : dpToPx(140);
-            int height = isDock ? dpToPx(90) : dpToPx(84);
+            int width = isDock ? dpToPx(140) : dpToPx(130);
+            int height = isDock ? dpToPx(82) : dpToPx(76);
             
-            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height + dpToPx(35));
-            lp.setMargins(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
+            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height + dpToPx(30));
+            lp.setMargins(dpToPx(10), dpToPx(8), dpToPx(10), dpToPx(8));
             container.setLayoutParams(lp);
             container.setFocusable(true);
             container.setClickable(true);
             container.setClipChildren(false);
 
-            // Карточка иконки
             FrameLayout card = new FrameLayout(parent.getContext());
             ViewGroup.LayoutParams cardLp = new ViewGroup.LayoutParams(width, height);
             card.setLayoutParams(cardLp);
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(22));
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(20));
                 }
             });
             card.setClipToOutline(true);
 
             ImageView iv = new ImageView(parent.getContext());
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(60), dpToPx(60), Gravity.CENTER));
+            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(52), dpToPx(52), Gravity.CENTER));
             container.addView(card);
 
-            // Название приложения (появляется только при фокусе)
             TextView tv = new TextView(parent.getContext());
             tv.setTextColor(Color.WHITE);
-            tv.setTextSize(145);
-            tv.setTextSize(14);
+            tv.setTextSize(13);
             tv.setTypeface(null, Typeface.BOLD);
             tv.setGravity(Gravity.CENTER);
             tv.setSingleLine(true);
-            tv.setAlpha(0f); // Скрыто по умолчанию, проявляется при фокусе
+            tv.setAlpha(0f);
             LinearLayout.LayoutParams tvLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
             );
-            tvLp.setMargins(0, dpToPx(10), 0, 0);
+            tvLp.setMargins(0, dpToPx(8), 0, 0);
             container.addView(tv, tvLp);
 
             return new RecyclerView.ViewHolder(container) {};
@@ -217,18 +207,17 @@ public class MainActivity extends Activity {
             tv.setText(item.label);
 
             GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
-            bg.setCornerRadius(dpToPx(22));
+            bg.setCornerRadius(dpToPx(20));
             card.setBackground(bg);
 
             container.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
-                    // Анимация увеличения (Zoom) и проявления текста
-                    animateScale(container, 1.15f, 1.15f, dpToPx(20));
-                    tv.animate().alpha(1f).setDuration(180).start();
+                    animateScale(container, 1.15f, 1.15f, dpToPx(18));
+                    tv.animate().alpha(1f).setDuration(160).start();
                     if (heroTitle != null) heroTitle.setText(item.label);
                 } else {
                     animateScale(container, 1.0f, 1.0f, 0f);
-                    tv.animate().alpha(0f).setDuration(150).start();
+                    tv.animate().alpha(0f).setDuration(140).start();
                 }
             });
 
@@ -252,7 +241,7 @@ public class MainActivity extends Activity {
         ObjectAnimator az = ObjectAnimator.ofFloat(view, "translationZ", elev);
         AnimatorSet set = new AnimatorSet();
         set.playTogether(ax, ay, az);
-        set.setDuration(200);
+        set.setDuration(180);
         set.setInterpolator(new DecelerateInterpolator());
         set.start();
     }

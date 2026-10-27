@@ -7,10 +7,10 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- 1. TOP SHELF: Верхняя промо-зона (баннер) -->
+    <!-- 1. TOP SHELF: Верхняя промо-зона (баннер с градиентом) -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="480dp"
+        android:layout_height="340dp"
         android:clipChildren="false">
 
         <ImageView
@@ -20,39 +20,32 @@
             android:scaleType="centerCrop"
             android:src="@android:color/black" />
 
-        <!-- Градиент глубины поверх постера -->
+        <!-- Градиент глубины -->
         <View
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@drawable/hero_gradient_overlay" />
 
-        <!-- Эмбиент-подсветка -->
-        <View
-            android:id="@+id/ambient_glow"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:alpha="0.4" />
-
-        <!-- Заголовок активного приложения (Top Shelf Title) -->
+        <!-- Заголовок активного приложения -->
         <TextView
             android:id="@+id/hero_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|start"
             android:layout_marginStart="64dp"
-            android:layout_marginBottom="36dp"
+            android:layout_marginBottom="28dp"
             android:text="Apple TV"
             android:textColor="#FFFFFF"
-            android:textSize="36sp"
+            android:textSize="34sp"
             android:textStyle="bold"
             android:letterSpacing="-0.02" />
 
-        <!-- Статус-бар в стиле macOS/tvOS справа вверху -->
+        <!-- Статус-бар (часы и настройки) справа вверху -->
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="44dp"
+            android:layout_height="40dp"
             android:layout_gravity="top|end"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="20dp"
             android:layout_marginEnd="48dp"
             android:background="@drawable/status_pill_bg"
             android:gravity="center_vertical"
@@ -66,14 +59,14 @@
                 android:format24Hour="HH:mm"
                 android:format12Hour="h:mm a"
                 android:textColor="#FFFFFF"
-                android:textSize="15sp"
+                android:textSize="14sp"
                 android:textStyle="bold" />
 
             <FrameLayout
                 android:id="@+id/btn_launcher_settings"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="12dp"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="10dp"
                 android:focusable="true"
                 android:clickable="true">
 
@@ -83,82 +76,52 @@
                     android:layout_gravity="center"
                     android:text="⚙"
                     android:textColor="#FFFFFF"
-                    android:textSize="16sp" />
+                    android:textSize="15sp" />
             </FrameLayout>
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 2. СЕТКА И ПРОКРУТКА КОНТЕНТА -->
-    <ScrollView
+    <!-- 2. ОСНОВНОЙ КОНТЕНТ (Dock и сетка) -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_marginTop="260dp"
         android:clipChildren="false"
-        android:clipToPadding="false"
-        android:scrollbars="none">
+        android:orientation="vertical">
 
+        <!-- DOCK: Избранные приложения в стеклянной капсуле по центру -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:clipChildren="false"
-            android:orientation="vertical">
+            android:gravity="center"
+            android:paddingBottom="28dp"
+            android:clipChildren="false">
 
-            <!-- Отступ под Top Shelf -->
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="360dp" />
-
-            <!-- DOCK: Избранные приложения в полупрозрачной стеклянной капсуле -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <FrameLayout
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:gravity="center"
-                android:paddingBottom="36dp"
+                android:background="@drawable/glass_dock_bg"
+                android:paddingHorizontal="18dp"
+                android:paddingVertical="14dp"
                 android:clipChildren="false">
 
-                <FrameLayout
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/dock_recycler"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/glass_dock_bg"
-                    android:paddingHorizontal="20dp"
-                    android:paddingVertical="16dp"
-                    android:clipChildren="false">
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/dock_recycler"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:clipChildren="false"
-                        android:orientation="horizontal" />
-                </FrameLayout>
-            </LinearLayout>
-
-            <!-- Сетка каталога приложений -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/grid_recycler"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clipChildren="false"
-                android:nestedScrollingEnabled="false"
-                android:paddingHorizontal="64dp"
-                android:paddingBottom="60dp" />
+                    android:clipChildren="false"
+                    android:orientation="horizontal" />
+            </FrameLayout>
         </LinearLayout>
-    </ScrollView>
 
-    <!-- Оверлей каталога (Все приложения) -->
-    <FrameLayout
-        android:id="@+id/app_drawer_overlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#CC050508"
-        android:visibility="gone"
-        android:clickable="true"
-        android:focusable="true">
-
+        <!-- Сетка остальных приложений -->
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/drawer_recycler"
+            android:id="@+id/grid_recycler"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="60dp" />
-    </FrameLayout>
+            android:clipChildren="false"
+            android:paddingHorizontal="64dp"
+            android:paddingBottom="40dp" />
+    </LinearLayout>
 
 </RelativeLayout>
