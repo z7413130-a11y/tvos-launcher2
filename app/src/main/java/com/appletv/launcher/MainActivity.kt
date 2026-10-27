@@ -98,7 +98,7 @@ fun AppleTvHomeScreen() {
             .fillMaxSize()
             .background(Color(0xFF000000))
     ) {
-        // --- TOP SHELF (Верхняя промо-зона с кинематографичным градиентом как на фото) ---
+        // --- TOP SHELF (Кинематографичная верхняя зона) ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -110,7 +110,6 @@ fun AppleTvHomeScreen() {
                     )
                 )
         ) {
-            // Заголовок или логотип в стиле Apple TV Top Shelf
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -126,7 +125,7 @@ fun AppleTvHomeScreen() {
             }
         }
 
-        // --- ГЛАВНАЯ ПРОКРУТКА ---
+        // --- ГЛАВНАЯ ПРОКРУТКА СЕТКИ ---
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 60.dp)
@@ -135,7 +134,7 @@ fun AppleTvHomeScreen() {
                 Spacer(modifier = Modifier.height(340.dp))
             }
 
-            // --- 1. DOCK (ИЗБРАННОЕ) С МАТОВЫМ СТЕКЛОМ ---
+            // --- 1. DOCK (ИЗБРАННОЕ В МАТОВОМ СТЕКЛЕ) ---
             item {
                 Box(
                     modifier = Modifier
@@ -147,7 +146,7 @@ fun AppleTvHomeScreen() {
                     Box(
                         modifier = Modifier
                             .background(
-                                color = Color(0x33FFFFFF), // Полупрозрачный белый мат
+                                color = Color(0x33FFFFFF),
                                 shape = RoundedCornerShape(32.dp)
                             )
                             .padding(horizontal = 24.dp, vertical = 18.dp)
@@ -172,7 +171,7 @@ fun AppleTvHomeScreen() {
                 }
             }
 
-            // --- 2. СЕТКА ОСТАЛЬНЫХ ПРИЛОЖЕНИЙ ---
+            // --- 2. ОСНОВНАЯ СЕТКА ПРИЛОЖЕНИЙ ---
             items(gridRows) { rowList ->
                 Row(
                     modifier = Modifier
@@ -211,19 +210,16 @@ fun TvosAppIcon(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    // Плавное увеличение иконки при фокусе с пульта
     val scale by animateFloatAsState(
         targetValue = if (isFocused) 1.18f else 1.0f,
         animationSpec = tween(durationMillis = 200), label = "scale"
     )
 
-    // Объемная тень и свечение при фокусе
     val glowAlpha by animateFloatAsState(
         targetValue = if (isFocused) 0.7f else 0.0f,
         animationSpec = tween(durationMillis = 200), label = "glow"
     )
 
-    // Появление текста ПОД иконкой только при наведении фокуса
     val textAlpha by animateFloatAsState(
         targetValue = if (isFocused) 1f else 0f,
         animationSpec = tween(durationMillis = 200), label = "text"
@@ -243,7 +239,6 @@ fun TvosAppIcon(
                 .drawBehind {
                     if (glowAlpha > 0f) {
                         drawIntoCanvas { canvas ->
-                            // Мягкая глубокая тень
                             val paint = android.graphics.Paint().apply {
                                 color = android.graphics.Color.TRANSPARENT
                                 setShadowLayer(
@@ -255,7 +250,6 @@ fun TvosAppIcon(
                                 0f, 0f, size.width, size.height, 24.dp.toPx(), 24.dp.toPx(), paint
                             )
                             
-                            // Белое свечение контура в стиле tvOS
                             val glowPaint = android.graphics.Paint().apply {
                                 color = android.graphics.Color.TRANSPARENT
                                 setShadowLayer(
@@ -288,7 +282,6 @@ fun TvosAppIcon(
             )
         }
         
-        // Название приложения появляется снизу при наведении
         Text(
             text = app.label,
             color = Color.White,
