@@ -33,7 +33,6 @@ import java.util.List;
 
 public class MainActivity extends Activity {
 
-    private ImageView heroBanner;
     private TextView heroTitle;
     private RecyclerView dockRecycler;
     private RecyclerView gridRecycler;
@@ -64,7 +63,6 @@ public class MainActivity extends Activity {
 
         prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
 
-        heroBanner = findViewById(R.id.hero_banner);
         heroTitle = findViewById(R.id.hero_title);
         dockRecycler = findViewById(R.id.dock_recycler);
         gridRecycler = findViewById(R.id.grid_recycler);
@@ -111,7 +109,7 @@ public class MainActivity extends Activity {
                 String pkg = ri.activityInfo.packageName;
                 String label = ri.loadLabel(pm).toString();
                 Drawable icon = ri.loadIcon(pm);
-                int[] colors = new int[]{0xFF3A3A3C, 0xFF1C1C1E};
+                int[] colors = new int[]{0xFF2C2C2E, 0xFF1C1C1E};
                 allApps.add(new AppItem(pkg, label, icon, colors));
             }
         }
@@ -121,7 +119,7 @@ public class MainActivity extends Activity {
         dockApps.clear();
         gridApps.clear();
 
-        int limit = Math.min(6, allApps.size());
+        int limit = Math.min(5, allApps.size());
         for (int i = 0; i < limit; i++) {
             dockApps.add(allApps.get(i));
         }
@@ -153,11 +151,12 @@ public class MainActivity extends Activity {
             container.setOrientation(LinearLayout.VERTICAL);
             container.setGravity(Gravity.CENTER_HORIZONTAL);
             
-            int width = isDock ? dpToPx(140) : dpToPx(130);
-            int height = isDock ? dpToPx(82) : dpToPx(76);
+            // Прямоугольные пропорции плиток tvOS
+            int width = dpToPx(138);
+            int height = dpToPx(80);
             
-            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height + dpToPx(30));
-            lp.setMargins(dpToPx(10), dpToPx(8), dpToPx(10), dpToPx(8));
+            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height + dpToPx(32));
+            lp.setMargins(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10));
             container.setLayoutParams(lp);
             container.setFocusable(true);
             container.setClickable(true);
@@ -166,19 +165,22 @@ public class MainActivity extends Activity {
             FrameLayout card = new FrameLayout(parent.getContext());
             ViewGroup.LayoutParams cardLp = new ViewGroup.LayoutParams(width, height);
             card.setLayoutParams(cardLp);
+            
+            // Закругление углов 18dp в стиле tvOS
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(20));
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(18));
                 }
             });
             card.setClipToOutline(true);
 
             ImageView iv = new ImageView(parent.getContext());
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(52), dpToPx(52), Gravity.CENTER));
+            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(48), dpToPx(48), Gravity.CENTER));
             container.addView(card);
 
+            // Название приложения появляется строго под плиткой при наведении фокуса
             TextView tv = new TextView(parent.getContext());
             tv.setTextColor(Color.WHITE);
             tv.setTextSize(13);
@@ -207,12 +209,13 @@ public class MainActivity extends Activity {
             tv.setText(item.label);
 
             GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
-            bg.setCornerRadius(dpToPx(20));
+            bg.setCornerRadius(dpToPx(18));
             card.setBackground(bg);
 
             container.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
-                    animateScale(container, 1.15f, 1.15f, dpToPx(18));
+                    // Плавное увеличение карточки (scale 1.15) и появление текста
+                    animateScale(container, 1.15f, 1.15f, dpToPx(24));
                     tv.animate().alpha(1f).setDuration(160).start();
                     if (heroTitle != null) heroTitle.setText(item.label);
                 } else {
