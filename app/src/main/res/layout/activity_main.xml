@@ -6,24 +6,86 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- Динамическая эмбиент-подсветка фона за активной карточкой -->
+    <!-- Динамическая подсветка Ambient Glow за активной карточкой -->
     <View
         android:id="@+id/ambient_glow_bg"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:alpha="0.35" />
 
-    <!-- Градиент затемнения сверху вниз -->
+    <!-- Верхний градиент для скрытия иконок при скролле (чтобы не лезли на заголовок) -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/hero_gradient_overlay" />
 
-    <!-- ВЕРХНЯЯ ПАНЕЛЬ: Заголовок слева, Часы/Настройки справа -->
+    <!-- ЕДИНЫЙ СКРОЛЛИНГ ВСЕГО ЭКРАНА -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:orientation="vertical"
+            android:paddingBottom="100dp">
+
+            <!-- Отступ сверху для экрана №1 -->
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="220dp" />
+
+            <!-- ДОК ИЗБРАННЫХ В МАТОВОЙ СТЕКЛЯННОЙ КАПСУЛЕ (Как в Apple TV) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:clipChildren="false">
+
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/glass_dock_bg"
+                    android:paddingHorizontal="20dp"
+                    android:paddingVertical="14dp"
+                    android:clipChildren="false">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/dock_recycler"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clipChildren="false"
+                        android:orientation="horizontal" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <!-- Отступ перед началом скрытой сетки -->
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="60dp" />
+
+            <!-- ВСЯ ОСТАЛЬНАЯ СЕТКА ПРИЛОЖЕНИЙ (Скрыта внизу, выезжает при скролле) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/grid_recycler"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipChildren="false"
+                android:nestedScrollingEnabled="false"
+                android:paddingHorizontal="64dp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- ВЕРХНЯЯ СТАТИЧНАЯ ПАНЕЛЬ (Заголовок слева, Часы справа поверх скролла) -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="80dp"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="28dp"
         android:layout_marginHorizontal="64dp"
         android:clipChildren="false">
 
@@ -35,7 +97,7 @@
             android:layout_centerVertical="true"
             android:text="Apple TV"
             android:textColor="#FFFFFF"
-            android:textSize="36sp"
+            android:textSize="34sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed" />
 
@@ -77,52 +139,5 @@
             </FrameLayout>
         </LinearLayout>
     </RelativeLayout>
-
-    <!-- ЕДИНЫЙ СКРОЛЛИНГ: Экран 1 (пустое место + док внизу) -> скролл вниз открывает скрытую сетку -->
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:fillViewport="true"
-        android:scrollbars="none">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clipChildren="false"
-            android:orientation="vertical"
-            android:paddingBottom="80dp">
-
-            <!-- Пустое пространство для экрана №1 (занимает верхние ~75% высоты) -->
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="480dp" />
-
-            <!-- ЕДИНСТВЕННЫЙ ВИДИМЫЙ РЯД ВНИЗУ (Без серых плашек и подложек) -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/dock_recycler"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clipChildren="false"
-                android:orientation="horizontal"
-                android:paddingHorizontal="56dp" />
-
-            <!-- МЕЖДУ СТРОКАМИ: Отступ, скрывающий общую сетку за границей экрана -->
-            <Space
-                android:layout_width="match_parent"
-                android:layout_height="80dp" />
-
-            <!-- ВСЯ ОСТАЛЬНАЯ СЕТКА (Скрыта внизу, выезжает при прокрутке пультом) -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/grid_recycler"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:clipChildren="false"
-                android:nestedScrollingEnabled="false"
-                android:paddingHorizontal="64dp" />
-
-        </LinearLayout>
-    </ScrollView>
 
 </RelativeLayout>
