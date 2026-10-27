@@ -6,13 +6,79 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- Фоновый градиент -->
+    <!-- Динамическая эмбиент-подсветка фона за активной карточкой -->
+    <View
+        android:id="@+id/ambient_glow_bg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0.35" />
+
+    <!-- Градиент затемнения сверху вниз -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/hero_gradient_overlay" />
 
-    <!-- Единый плавный скролл всего экрана в стиле tvOS -->
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ: Заголовок слева, Часы/Настройки справа -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_marginTop="32dp"
+        android:layout_marginHorizontal="64dp"
+        android:clipChildren="false">
+
+        <TextView
+            android:id="@+id/hero_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:text="Apple TV"
+            android:textColor="#FFFFFF"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-condensed" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/status_pill_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="14dp">
+
+            <TextClock
+                android:id="@+id/main_text_clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format24Hour="HH:mm"
+                android:format12Hour="h:mm a"
+                android:textColor="#CCFFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:id="@+id/btn_launcher_settings"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_marginStart="8dp"
+                android:focusable="true"
+                android:clickable="true">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="⚙"
+                    android:textColor="#CCFFFFFF"
+                    android:textSize="14sp" />
+            </FrameLayout>
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- ЕДИНЫЙ СКРОЛЛИНГ: Экран 1 (пустое место + док внизу) -> скролл вниз открывает скрытую сетку -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -26,98 +92,28 @@
             android:layout_height="wrap_content"
             android:clipChildren="false"
             android:orientation="vertical"
-            android:paddingBottom="60dp">
+            android:paddingBottom="80dp">
 
-            <!-- ВЕРХНЯЯ ЗОНА: Заголовок и Статус-бар -->
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="120dp"
-                android:layout_marginTop="32dp"
-                android:layout_marginHorizontal="64dp"
-                android:clipChildren="false">
-
-                <TextView
-                    android:id="@+id/hero_title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentStart="true"
-                    android:layout_centerVertical="true"
-                    android:text="Apple TV"
-                    android:textColor="#FFFFFF"
-                    android:textSize="34sp"
-                    android:textStyle="bold"
-                    android:fontFamily="sans-serif-condensed" />
-
-                <!-- Статус-бар (часы и шестеренка) -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:background="@drawable/status_pill_bg"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="14dp">
-
-                    <TextClock
-                        android:id="@+id/main_text_clock"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:format24Hour="HH:mm"
-                        android:format12Hour="h:mm a"
-                        android:textColor="#CCFFFFFF"
-                        android:textSize="13sp"
-                        android:textStyle="bold" />
-
-                    <FrameLayout
-                        android:id="@+id/btn_launcher_settings"
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        android:layout_marginStart="8dp"
-                        android:focusable="true"
-                        android:clickable="true">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:text="⚙"
-                            android:textColor="#CCFFFFFF"
-                            android:textSize="14sp" />
-                    </FrameLayout>
-                </LinearLayout>
-            </RelativeLayout>
-
-            <!-- СТЕКЛЯННАЯ КАПСУЛА С ДОКОМ (Избранное) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:clipChildren="false">
-
-                <FrameLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:background="@drawable/glass_dock_bg"
-                    android:paddingHorizontal="16dp"
-                    android:paddingVertical="12dp"
-                    android:clipChildren="false">
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/dock_recycler"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:clipChildren="false"
-                        android:orientation="horizontal" />
-                </FrameLayout>
-            </LinearLayout>
-
-            <!-- Небольшой отступ под доком перед началом сетки -->
+            <!-- Пустое пространство для экрана №1 (занимает верхние ~75% высоты) -->
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="32dp" />
+                android:layout_height="480dp" />
 
-            <!-- СЕТКА ВСЕХ ПРИЛОЖЕНИЙ (Находится строго внизу под панелью) -->
+            <!-- ЕДИНСТВЕННЫЙ ВИДИМЫЙ РЯД ВНИЗУ (Без серых плашек и подложек) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/dock_recycler"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipChildren="false"
+                android:orientation="horizontal"
+                android:paddingHorizontal="56dp" />
+
+            <!-- МЕЖДУ СТРОКАМИ: Отступ, скрывающий общую сетку за границей экрана -->
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="80dp" />
+
+            <!-- ВСЯ ОСТАЛЬНАЯ СЕТКА (Скрыта внизу, выезжает при прокрутке пультом) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/grid_recycler"
                 android:layout_width="match_parent"

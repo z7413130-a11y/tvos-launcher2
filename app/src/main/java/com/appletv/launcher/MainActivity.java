@@ -2,15 +2,20 @@ package com.appletv.launcher;
 
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.animation.ArgbEvaluator;
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -34,6 +39,7 @@ import java.util.List;
 public class MainActivity extends Activity {
 
     private TextView heroTitle;
+    private View ambientGlowBg;
     private RecyclerView dockRecycler;
     private RecyclerView gridRecycler;
     private FrameLayout btnSettings;
@@ -41,18 +47,19 @@ public class MainActivity extends Activity {
     private final List<AppItem> dockApps = new ArrayList<>();
     private final List<AppItem> gridApps = new ArrayList<>();
     private SharedPreferences prefs;
+    private int currentGlowColor = 0xFF22222E;
 
     public static class AppItem {
         public String packageName;
         public String label;
         public Drawable icon;
-        public int[] colors;
+        public int dominantColor;
 
-        public AppItem(String packageName, String label, Drawable icon, int[] colors) {
+        public AppItem(String packageName, String label, Drawable icon, int dominantColor) {
             this.packageName = packageName;
             this.label = label;
             this.icon = icon;
-            this.colors = colors;
+            this.dominantColor = dominantColor;
         }
     }
 
@@ -64,6 +71,7 @@ public class MainActivity extends Activity {
         prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
 
         heroTitle = findViewById(R.id.hero_title);
+        ambientGlowBg = findViewById(R.id.ambient_glow_bg);
         dockRecycler = findViewById(R.id.dock_recycler);
         gridRecycler = findViewById(R.id.grid_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
@@ -74,12 +82,12 @@ public class MainActivity extends Activity {
 
         if (dockRecycler != null) {
             dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-            dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true));
+            dockRecycler.setAdapter(new TvosAppAdapter(dockApps));
         }
 
         if (gridRecycler != null) {
             gridRecycler.setLayoutManager(new GridLayoutManager(this, 6));
-            gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false));
+            gridRecycler.setAdapter(new TvosAppAdapter(gridApps));
         }
 
         if (btnSettings != null) {
@@ -97,6 +105,44 @@ public class MainActivity extends Activity {
         return (int) (dp * getResources().getDisplayMetrics().density + 0.5f);
     }
 
+    private int extractDominantColor(Drawable drawable) {
+        try {
+            Bitmap bitmap;
+            if (drawable instanceof BitmapDrawable) {
+                bitmap = ((BitmapDrawable) drawable).getBitmap();
+            } else {
+                bitmap = Bitmap.createBitmap(
+                    Math.max(1, drawable.getIntrinsicWidth()),
+                    Math.max(1, drawable.getIntrinsicHeight()),
+                    Bitmap.Config.ARGB_8888
+                );
+                Canvas canvas = new Canvas(bitmap);
+                drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+                drawable.draw(canvas);
+            }
+            if (bitmap != null) {
+                Bitmap small = Bitmap.createScaledBitmap(bitmap, 8, 8, false);
+                long r = 0, g = 0, b = 0;
+                int count = 0;
+                for (int x = 1; x < 7; x++) {
+                    for (int y = 1; y < 7; y++) {
+                        int pixel = small.getPixel(x, y);
+                        if (Color.alpha(pixel) > 50) {
+                            r += Color.red(pixel);
+                            g += Color.green(pixel);
+                            b += Color.blue(pixel);
+                            count++;
+                        }
+                    }
+                }
+                if (count > 0) {
+                    return Color.rgb((int)(r / count), (int)(g / count), (int)(b / count));
+                }
+            }
+        } catch (Exception ignored) {}
+        return 0xFF2C2C2E;
+    }
+
     private void loadInstalledApps() {
         PackageManager pm = getPackageManager();
         Intent intent = new Intent(Intent.ACTION_MAIN, null);
@@ -109,8 +155,8 @@ public class MainActivity extends Activity {
                 String pkg = ri.activityInfo.packageName;
                 String label = ri.loadLabel(pm).toString();
                 Drawable icon = ri.loadIcon(pm);
-                int[] colors = new int[]{0xFF2C2C2E, 0xFF1C1C1E};
-                allApps.add(new AppItem(pkg, label, icon, colors));
+                int domColor = extractDominantColor(icon);
+                allApps.add(new AppItem(pkg, label, icon, domColor));
             }
         }
 
@@ -119,7 +165,7 @@ public class MainActivity extends Activity {
         dockApps.clear();
         gridApps.clear();
 
-        // Ровно 6 иконок в верхнем доке, как на референсе Apple TV
+        // Первые 6 иконок — нижний видимый ряд на Экене №1
         int limit = Math.min(6, allApps.size());
         for (int i = 0; i < limit; i++) {
             dockApps.add(allApps.get(i));
@@ -136,92 +182,98 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void animateAmbientGlow(int targetColor) {
+        if (ambientGlowBg == null) return;
+        ValueAnimator colorAnim = ValueAnimator.ofObject(new ArgbEvaluator(), currentGlowColor, targetColor);
+        colorAnim.setDuration(280);
+        colorAnim.addUpdateListener(animator -> {
+            int c = (int) animator.getAnimatedValue();
+            currentGlowColor = c;
+            GradientDrawable gd = new GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{c, 0xFF050508}
+            );
+            ambientGlowBg.setBackground(gd);
+        });
+        colorAnim.start();
+    }
+
     private class TvosAppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private final List<AppItem> items;
-        private final boolean isDock;
 
-        public TvosAppAdapter(List<AppItem> items, boolean isDock) {
+        public TvosAppAdapter(List<AppItem> items) {
             this.items = items;
-            this.isDock = isDock;
         }
 
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            LinearLayout container = new LinearLayout(parent.getContext());
-            container.setOrientation(LinearLayout.VERTICAL);
-            container.setGravity(Gravity.CENTER_HORIZONTAL);
-            
-            int width = dpToPx(132);
-            int height = dpToPx(76);
-            
-            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height + dpToPx(28));
-            lp.setMargins(dpToPx(8), dpToPx(6), dpToPx(8), dpToPx(6));
-            container.setLayoutParams(lp);
-            container.setFocusable(true);
-            container.setClickable(true);
-            container.setClipChildren(false);
-
             FrameLayout card = new FrameLayout(parent.getContext());
-            ViewGroup.LayoutParams cardLp = new ViewGroup.LayoutParams(width, height);
-            card.setLayoutParams(cardLp);
             
+            // Прямоугольные пропорции плитки tvOS
+            int width = dpToPx(138);
+            int height = dpToPx(82);
+            
+            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height);
+            lp.setMargins(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10));
+            card.setLayoutParams(lp);
+            card.setFocusable(true);
+            card.setClickable(true);
+            
+            // Скругление 18dp
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(16));
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(18));
                 }
             });
             card.setClipToOutline(true);
 
             ImageView iv = new ImageView(parent.getContext());
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(44), dpToPx(44), Gravity.CENTER));
-            container.addView(card);
+            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(50), dpToPx(50), Gravity.CENTER));
 
-            TextView tv = new TextView(parent.getContext());
-            tv.setTextColor(Color.WHITE);
-            tv.setTextSize(12);
-            tv.setTypeface(null, Typeface.BOLD);
-            tv.setGravity(Gravity.CENTER);
-            tv.setSingleLine(true);
-            tv.setAlpha(0f);
-            LinearLayout.LayoutParams tvLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-            );
-            tvLp.setMargins(0, dpToPx(6), 0, 0);
-            container.addView(tv, tvLp);
-
-            return new RecyclerView.ViewHolder(container) {};
+            return new RecyclerView.ViewHolder(card) {};
         }
 
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             AppItem item = items.get(position);
-            LinearLayout container = (LinearLayout) holder.itemView;
-            FrameLayout card = (FrameLayout) container.getChildAt(0);
+            FrameLayout card = (FrameLayout) holder.itemView;
             ImageView iv = (ImageView) card.getChildAt(0);
-            TextView tv = (TextView) container.getChildAt(1);
 
             iv.setImageDrawable(item.icon);
-            tv.setText(item.label);
 
-            GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, item.colors);
-            bg.setCornerRadius(dpToPx(16));
-            card.setBackground(bg);
+            // Автоматическая покраска подложки карточки в доминирующий цвет иконки с градиентом
+            int baseColor = item.dominantColor;
+            int darkColor = Color.rgb(
+                (int)(Color.red(baseColor) * 0.5f),
+                (int)(Color.green(baseColor) * 0.5f),
+                (int)(Color.blue(baseColor) * 0.5f)
+            );
 
-            container.setOnFocusChangeListener((v, hasFocus) -> {
+            GradientDrawable cardBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{baseColor, darkColor});
+            cardBg.setCornerRadius(dpToPx(18));
+            card.setBackground(cardBg);
+
+            card.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
-                    animateScale(container, 1.15f, 1.15f, dpToPx(20));
-                    tv.animate().alpha(1f).setDuration(150).start();
-                    if (heroTitle != null) heroTitle.setText(item.label);
+                    // Плавное увеличение карточки (scale 1.15)
+                    animateScale(card, 1.15f, 1.15f, dpToPx(28));
+                    
+                    // Динамическое свечение фона под цвет иконки
+                    animateAmbientGlow(baseColor);
+                    
+                    // Вывод названия приложения в левый верхний угол
+                    if (heroTitle != null) {
+                        heroTitle.setText(item.label);
+                    }
                 } else {
-                    animateScale(container, 1.0f, 1.0f, 0f);
-                    tv.animate().alpha(0f).setDuration(120).start();
+                    animateScale(card, 1.0f, 1.0f, 0f);
                 }
             });
 
-            container.setOnClickListener(v -> {
+            card.setOnClickListener(v -> {
                 PackageManager pm = getPackageManager();
                 Intent launch = pm.getLeanbackLaunchIntentForPackage(item.packageName);
                 if (launch == null) launch = pm.getLaunchIntentForPackage(item.packageName);
@@ -241,7 +293,7 @@ public class MainActivity extends Activity {
         ObjectAnimator az = ObjectAnimator.ofFloat(view, "translationZ", elev);
         AnimatorSet set = new AnimatorSet();
         set.playTogether(ax, ay, az);
-        set.setDuration(160);
+        set.setDuration(180);
         set.setInterpolator(new DecelerateInterpolator());
         set.start();
     }
