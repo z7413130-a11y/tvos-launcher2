@@ -28,6 +28,7 @@ import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -111,19 +112,16 @@ public class MainActivity extends Activity {
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN) {
             int keyCode = event.getKeyCode();
-            // Если мы в доке и жмем ВНИЗ -> открываем сетку
             if (!isGridViewActive && (keyCode == KeyEvent.KEYCODE_DPAD_DOWN || keyCode == KeyEvent.KEYCODE_CHANNEL_DOWN)) {
                 showGridView();
                 if (gridRecycler != null && gridRecycler.getChildCount() > 0) {
                     gridRecycler.getChildAt(0).requestFocus();
                 }
                 return true;
-            }
-            // Если мы в сетке и жмем ВВЕРХ на верхнем ряду -> возвращаем док
-            else if (isGridViewActive && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+            } else if (isGridViewActive && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
                 View focusedChild = gridRecycler.getFocusedChild();
                 int pos = focusedChild != null ? gridRecycler.getChildAdapterPosition(focusedChild) : -1;
-                if (pos >= 0 && pos < 6) { // Если фокус на первом ряду сетки
+                if (pos >= 0 && pos < 6) {
                     hideGridView();
                     if (dockRecycler != null && dockRecycler.getChildCount() > 0) {
                         dockRecycler.getChildAt(0).requestFocus();
@@ -221,7 +219,6 @@ public class MainActivity extends Activity {
         dockApps.clear();
         gridApps.clear();
 
-        // Ровно 6 иконок в нижнем доке
         int limit = Math.min(6, allApps.size());
         for (int i = 0; i < limit; i++) {
             dockApps.add(allApps.get(i));
