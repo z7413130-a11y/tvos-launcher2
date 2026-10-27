@@ -18,17 +18,11 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Build with Gradle (without wrapper)
-        run: gradle assembleDebug || ./gradlew assembleDebug || true
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
-      - name: Build APK direct
-        run: |
-          # Прямая сборка через android sdk, если gradle выдаст ошибку обертки
-          apt-get update && apt-get install -y wget unzip
-          export ANDROID_HOME=$HOME/android-sdk
-          mkdir -p $ANDROID_HOME
-          # Сборка через gradle task напрямую
-          gradle assembleDebug || true
+      - name: Build APK with Gradle
+        run: gradle assembleDebug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
