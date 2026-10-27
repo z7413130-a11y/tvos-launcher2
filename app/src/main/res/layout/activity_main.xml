@@ -35,10 +35,10 @@
             android:orientation="vertical"
             android:paddingBottom="100dp">
 
-            <!-- Отступ, чтобы док встал ближе к нижней части экрана (примерно на 65% высоты) -->
+            <!-- Отступ увеличен до 430dp, чтобы док опустился чуть ниже -->
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="320dp" />
+                android:layout_height="430dp" />
 
             <!-- ДОК ИЗБРАННЫХ В СТЕКЛЯННОЙ КАПСУЛЕ -->
             <LinearLayout
