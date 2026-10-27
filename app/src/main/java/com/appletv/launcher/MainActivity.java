@@ -20,6 +20,7 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
@@ -40,6 +41,8 @@ public class MainActivity extends Activity {
 
     private TextView heroTitle;
     private View ambientGlowBg;
+    private LinearLayout dockContainerLayout;
+    private RelativeLayout gridContainer;
     private RecyclerView dockRecycler;
     private RecyclerView gridRecycler;
     private FrameLayout btnSettings;
@@ -48,6 +51,7 @@ public class MainActivity extends Activity {
     private final List<AppItem> gridApps = new ArrayList<>();
     private SharedPreferences prefs;
     private int currentGlowColor = 0xFF22222E;
+    private boolean isGridViewActive = false;
 
     public static class AppItem {
         public String packageName;
@@ -72,6 +76,8 @@ public class MainActivity extends Activity {
 
         heroTitle = findViewById(R.id.hero_title);
         ambientGlowBg = findViewById(R.id.ambient_glow_bg);
+        dockContainerLayout = findViewById(R.id.dock_container_layout);
+        gridContainer = findViewById(R.id.grid_container);
         dockRecycler = findViewById(R.id.dock_recycler);
         gridRecycler = findViewById(R.id.grid_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
@@ -82,12 +88,12 @@ public class MainActivity extends Activity {
 
         if (dockRecycler != null) {
             dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-            dockRecycler.setAdapter(new TvosAppAdapter(dockApps));
+            dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true));
         }
 
         if (gridRecycler != null) {
             gridRecycler.setLayoutManager(new GridLayoutManager(this, 6));
-            gridRecycler.setAdapter(new TvosAppAdapter(gridApps));
+            gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false));
         }
 
         if (btnSettings != null) {
@@ -99,6 +105,56 @@ public class MainActivity extends Activity {
         }
 
         loadInstalledApps();
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            int keyCode = event.getKeyCode();
+            // Если мы в доке и жмем ВНИЗ -> открываем сетку
+            if (!isGridViewActive && (keyCode == KeyEvent.KEYCODE_DPAD_DOWN || keyCode == KeyEvent.KEYCODE_CHANNEL_DOWN)) {
+                showGridView();
+                if (gridRecycler != null && gridRecycler.getChildCount() > 0) {
+                    gridRecycler.getChildAt(0).requestFocus();
+                }
+                return true;
+            }
+            // Если мы в сетке и жмем ВВЕРХ на верхнем ряду -> возвращаем док
+            else if (isGridViewActive && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                View focusedChild = gridRecycler.getFocusedChild();
+                int pos = focusedChild != null ? gridRecycler.getChildAdapterPosition(focusedChild) : -1;
+                if (pos >= 0 && pos < 6) { // Если фокус на первом ряду сетки
+                    hideGridView();
+                    if (dockRecycler != null && dockRecycler.getChildCount() > 0) {
+                        dockRecycler.getChildAt(0).requestFocus();
+                    }
+                    return true;
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    private void showGridView() {
+        isGridViewActive = true;
+        if (gridContainer != null) {
+            gridContainer.setVisibility(View.VISIBLE);
+            gridContainer.animate().alpha(1f).translationY(0f).setDuration(220).setInterpolator(new DecelerateInterpolator()).start();
+        }
+        if (dockContainerLayout != null) {
+            dockContainerLayout.animate().alpha(0f).translationY(50f).setDuration(180).withEndAction(() -> dockContainerLayout.setVisibility(View.GONE)).start();
+        }
+    }
+
+    private void hideGridView() {
+        isGridViewActive = false;
+        if (dockContainerLayout != null) {
+            dockContainerLayout.setVisibility(View.VISIBLE);
+            dockContainerLayout.animate().alpha(1f).translationY(0f).setDuration(220).setInterpolator(new DecelerateInterpolator()).start();
+        }
+        if (gridContainer != null) {
+            gridContainer.animate().alpha(0f).translationY(50f).setDuration(180).withEndAction(() -> gridContainer.setVisibility(View.GONE)).start();
+        }
     }
 
     private int dpToPx(int dp) {
@@ -165,7 +221,7 @@ public class MainActivity extends Activity {
         dockApps.clear();
         gridApps.clear();
 
-        // Первые 6 иконок — нижний видимый ряд на Экене №1
+        // Ровно 6 иконок в нижнем доке
         int limit = Math.min(6, allApps.size());
         for (int i = 0; i < limit; i++) {
             dockApps.add(allApps.get(i));
@@ -200,9 +256,11 @@ public class MainActivity extends Activity {
 
     private class TvosAppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private final List<AppItem> items;
+        private final boolean isDock;
 
-        public TvosAppAdapter(List<AppItem> items) {
+        public TvosAppAdapter(List<AppItem> items, boolean isDock) {
             this.items = items;
+            this.isDock = isDock;
         }
 
         @NonNull
@@ -210,7 +268,6 @@ public class MainActivity extends Activity {
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             FrameLayout card = new FrameLayout(parent.getContext());
             
-            // Прямоугольные пропорции плитки tvOS
             int width = dpToPx(138);
             int height = dpToPx(82);
             
@@ -220,7 +277,6 @@ public class MainActivity extends Activity {
             card.setFocusable(true);
             card.setClickable(true);
             
-            // Скругление 18dp
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
@@ -244,7 +300,6 @@ public class MainActivity extends Activity {
 
             iv.setImageDrawable(item.icon);
 
-            // Автоматическая покраска подложки карточки в доминирующий цвет иконки с градиентом
             int baseColor = item.dominantColor;
             int darkColor = Color.rgb(
                 (int)(Color.red(baseColor) * 0.5f),
@@ -258,13 +313,8 @@ public class MainActivity extends Activity {
 
             card.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
-                    // Плавное увеличение карточки (scale 1.15)
                     animateScale(card, 1.15f, 1.15f, dpToPx(28));
-                    
-                    // Динамическое свечение фона под цвет иконки
                     animateAmbientGlow(baseColor);
-                    
-                    // Вывод названия приложения в левый верхний угол
                     if (heroTitle != null) {
                         heroTitle.setText(item.label);
                     }
