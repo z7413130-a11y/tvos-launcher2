@@ -13,13 +13,13 @@
         android:layout_height="match_parent"
         android:alpha="0.35" />
 
-    <!-- Верхний градиент для скрытия иконок при скролле -->
+    <!-- Верхний градиент -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/hero_gradient_overlay" />
 
-    <!-- ЕДИНЫЙ СКРОЛЛИНГ ВСЕГО ЭКРАНА -->
+    <!-- Скролл всего контента -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -33,14 +33,14 @@
             android:layout_height="wrap_content"
             android:clipChildren="false"
             android:orientation="vertical"
-            android:paddingBottom="120dp">
+            android:paddingBottom="100dp">
 
-            <!-- Большой отступ сверху, чтобы док был ровно в нижней части экрана №1 -->
+            <!-- Отступ, чтобы док встал ближе к нижней части экрана (примерно на 65% высоты) -->
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="520dp" />
+                android:layout_height="320dp" />
 
-            <!-- ДОК ИЗБРАННЫХ В СТЕКЛЯННОЙ КАПСУЛЕ (Свободное пространство без обрезки по бокам) -->
+            <!-- ДОК ИЗБРАННЫХ В СТЕКЛЯННОЙ КАПСУЛЕ -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -67,12 +67,12 @@
                 </FrameLayout>
             </LinearLayout>
 
-            <!-- ОГРОМНЫЙ ОТСТУП: Прячет всю общую сетку приложений далеко вниз за границу экрана -->
+            <!-- Отступ до скрытой сетки приложений -->
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="400dp" />
+                android:layout_height="180dp" />
 
-            <!-- ВСЯ ОСТАЛЬНАЯ СЕТКА (Появится только при прокрутке вниз) -->
+            <!-- СЕТКА ПРИЛОЖЕНИЙ (Скрыта внизу, выезжает при скролле) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/grid_recycler"
                 android:layout_width="match_parent"
@@ -85,7 +85,7 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- ВЕРХНЯЯ СТАТИЧНАЯ ПАНЕЛЬ (Заголовок слева, Часы справа) -->
+    <!-- ВЕРХНЯЯ СТАТИЧНАЯ ПАНЕЛЬ -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="80dp"
