@@ -102,11 +102,6 @@ public class MainActivity extends AppCompatActivity {
 
     private int currentAmbientColor = 0xFF14101A;
 
-    private boolean isJiggleMode = false;
-    private boolean isDraggingItem = false;
-    private int currentGrabbedPosition = -1;
-    private long jiggleModeStartTime = 0L;
-
     public static class AppItem {
         public String packageName;
         public String label;
@@ -132,22 +127,6 @@ public class MainActivity extends AppCompatActivity {
             this.bannerRes = android.R.color.black;
             this.isActionAllApps = isActionAllApps;
         }
-    }
-
-    public static class PickerOption {
-        public String title;
-        public String key;
-        public boolean isSelected;
-
-        public PickerOption(String title, String key, boolean isSelected) {
-            this.title = title;
-            this.key = key;
-            this.isSelected = isSelected;
-        }
-    }
-
-    public interface OnOptionSelectedListener {
-        void onSelected(PickerOption option);
     }
 
     @Override
@@ -330,6 +309,14 @@ public class MainActivity extends AppCompatActivity {
             }).start();
         }
         resetScreensaverTimer();
+    }
+
+    private void openSettings() {
+        if (settingsOverlay != null) {
+            settingsOverlay.setVisibility(View.VISIBLE);
+            settingsOverlay.setAlpha(0f);
+            settingsOverlay.animate().alpha(1f).setDuration(200).start();
+        }
     }
 
     private void initSettingsListeners() {
