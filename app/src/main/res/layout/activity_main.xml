@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#050508"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <!-- 1. Фоновый постер -->
+    <ImageView
+        android:id="@+id/hero_banner"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop" />
+
+    <!-- 2. Динамическая подсветка Ambient Glow -->
+    <View
+        android:id="@+id/ambient_glow"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0.55" />
+
+    <!-- ГЛАВНЫЙ ЭКРАН -->
+    <RelativeLayout
+        android:id="@+id/home_content_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <!-- ВЕРХНЯЯ СТАТУСНАЯ СТРОКА -->
+        <LinearLayout
+            android:id="@+id/top_status_pill"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="20dp"
+            android:layout_marginEnd="24dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="end">
+
+                <TextClock
+                    android:id="@+id/main_text_clock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:format24Hour="HH:mm"
+                    android:format12Hour="h:mm a"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_date_display"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#88FFFFFF"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <FrameLayout
+                android:id="@+id/btn_launcher_settings"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:layout_marginStart="14dp"
+                android:focusable="true"
+                android:clickable="true">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="⚙"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- Заголовок активного приложения -->
+        <TextView
+            android:id="@+id/hero_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginStart="56dp"
+            android:layout_marginTop="36dp"
+            android:text="Apple TV"
+            android:textColor="#FFFFFF"
+            android:textSize="36sp"
+            android:textStyle="bold" />
+
+        <!-- Нижний Dock -->
+        <LinearLayout
+            android:id="@+id/dock_layout_wrapper"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingBottom="24dp">
+
+            <FrameLayout
+                android:id="@+id/glass_dock_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/dock_recycler"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+            </FrameLayout>
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- КАТАЛОГ ВСЕХ ПРИЛОЖЕНИЙ -->
+    <FrameLayout
+        android:id="@+id/app_drawer_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#B806070B"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/drawer_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="40dp" />
+    </FrameLayout>
+
+    <!-- ПАНЕЛЬ НАСТРОЕК -->
+    <FrameLayout
+        android:id="@+id/settings_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#C406070B"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:padding="60dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <FrameLayout android:id="@+id/setting_item_tiles" android:layout_width="match_parent" android:layout_height="50dp" android:focusable="true" />
+                <FrameLayout android:id="@+id/setting_item_sound" android:layout_width="match_parent" android:layout_height="50dp" android:focusable="true" />
+                <FrameLayout android:id="@+id/setting_item_ambient" android:layout_width="match_parent" android:layout_height="50dp" android:focusable="true" />
+                <FrameLayout android:id="@+id/setting_item_tiles_size" android:layout_width="match_parent" android:layout_height="50dp" android:focusable="true" />
+                <FrameLayout android:id="@+id/setting_item_clock" android:layout_width="match_parent" android:layout_height="50dp" android:focusable="true" />
+                <FrameLayout android:id="@+id/setting_item_screensaver" android:layout_width="match_parent" android:layout_height="50dp" android:focusable="true" />
+                <FrameLayout android:id="@+id/setting_item_autostart" android:layout_width="match_parent" android:layout_height="50dp" android:focusable="true" />
+
+                <!-- Дополнительные пустые заглушки для привязки ID из кода -->
+                <TextView android:id="@+id/tv_setting_sound_val" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/tv_setting_ambient_val" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/tv_setting_size_val" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/tv_setting_clock_val" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/tv_setting_saver_val" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/tv_setting_autostart_val" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/settings_preview_icon" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/settings_preview_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+                <TextView android:id="@+id/settings_preview_desc" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- МЕНЕДЖЕР ПЛИТОК -->
+    <FrameLayout
+        android:id="@+id/tiles_manager_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/tiles_manager_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
+
+    <!-- ЗАСТАВКА -->
+    <FrameLayout
+        android:id="@+id/screensaver_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/screensaver_bg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="64dp"
+            android:layout_marginBottom="48dp"
+            android:orientation="vertical">
+
+            <TextClock
+                android:id="@+id/saver_text_clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format24Hour="HH:mm"
+                android:textColor="#FFFFFF"
+                android:textSize="60sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/saver_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#CCFFFFFF"
+                android:textSize="18sp" />
+        </LinearLayout>
+    </FrameLayout>
+
+</RelativeLayout>
