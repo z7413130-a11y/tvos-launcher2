@@ -2,7 +2,6 @@ package com.appletv.launcher
 
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
@@ -13,7 +12,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
@@ -45,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,7 +52,8 @@ import java.util.Locale
 data class AppModel(
     val packageName: String,
     val label: String,
-    val icon: ImageBitmap
+    val icon: ImageBitmap,
+    val dominantColor: Color
 )
 
 class MainActivity : ComponentActivity() {
@@ -98,49 +98,50 @@ fun AppleTvHomeScreen() {
             .fillMaxSize()
             .background(Color(0xFF000000))
     ) {
-        // --- TOP SHELF (Кинематографичная верхняя зона) ---
+        // --- TOP SHELF (Верхний постер) ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.55f)
+                .fillMaxHeight(0.7f)
                 .align(Alignment.TopCenter)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFF3A3A3C), Color(0xFF1C1C1E), Color.Black)
-                    )
-                )
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(60.dp),
-                contentAlignment = Alignment.BottomStart
-            ) {
-                Text(
-                    text = "tv+",
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                    .background(
+                        Brush.linearGradient(
+                            colors = listOf(Color(0xFF1B2838), Color(0xFF0B1017))
+                        )
+                    )
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color(0x99000000), Color.Black),
+                            startY = 200f
+                        )
+                    )
+            )
         }
 
-        // --- ГЛАВНАЯ ПРОКРУТКА СЕТКИ ---
+        // --- СЕТКА ПРОКРУТКИ ---
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 60.dp)
         ) {
             item {
-                Spacer(modifier = Modifier.height(340.dp))
+                Spacer(modifier = Modifier.height(420.dp))
             }
 
-            // --- 1. DOCK (ИЗБРАННОЕ В МАТОВОМ СТЕКЛЕ) ---
+            // --- 1. DOCK (ИЗБРАННОЕ) ---
             item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 60.dp)
-                        .padding(bottom = 30.dp),
+                        .padding(bottom = 40.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
@@ -149,7 +150,7 @@ fun AppleTvHomeScreen() {
                                 color = Color(0x33FFFFFF),
                                 shape = RoundedCornerShape(32.dp)
                             )
-                            .padding(horizontal = 24.dp, vertical = 18.dp)
+                            .padding(horizontal = 24.dp, vertical = 20.dp)
                     ) {
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
@@ -171,7 +172,7 @@ fun AppleTvHomeScreen() {
                 }
             }
 
-            // --- 2. ОСНОВНАЯ СЕТКА ПРИЛОЖЕНИЙ ---
+            // --- 2. СЕТКА ОСТАЛЬНЫХ ПРИЛОЖЕНИЙ ---
             items(gridRows) { rowList ->
                 Row(
                     modifier = Modifier
@@ -211,12 +212,12 @@ fun TvosAppIcon(
     val isFocused by interactionSource.collectIsFocusedAsState()
 
     val scale by animateFloatAsState(
-        targetValue = if (isFocused) 1.18f else 1.0f,
+        targetValue = if (isFocused) 1.15f else 1.0f,
         animationSpec = tween(durationMillis = 200), label = "scale"
     )
 
     val glowAlpha by animateFloatAsState(
-        targetValue = if (isFocused) 0.7f else 0.0f,
+        targetValue = if (isFocused) 0.6f else 0.0f,
         animationSpec = tween(durationMillis = 200), label = "glow"
     )
 
@@ -228,7 +229,7 @@ fun TvosAppIcon(
     Column(
         modifier = Modifier
             .width(150.dp)
-            .zIndex(if (isFocused) 10f else 0f), 
+            .zIndex(if (isFocused) 1f else 0f),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
@@ -242,23 +243,12 @@ fun TvosAppIcon(
                             val paint = android.graphics.Paint().apply {
                                 color = android.graphics.Color.TRANSPARENT
                                 setShadowLayer(
-                                    50f, 0f, 22f,
+                                    45f, 0f, 20f,
                                     android.graphics.Color.argb((glowAlpha * 255).toInt(), 0, 0, 0)
                                 )
                             }
                             canvas.nativeCanvas.drawRoundRect(
                                 0f, 0f, size.width, size.height, 24.dp.toPx(), 24.dp.toPx(), paint
-                            )
-                            
-                            val glowPaint = android.graphics.Paint().apply {
-                                color = android.graphics.Color.TRANSPARENT
-                                setShadowLayer(
-                                    25f, 0f, 0f,
-                                    android.graphics.Color.argb((glowAlpha * 200).toInt(), 255, 255, 255)
-                                )
-                            }
-                            canvas.nativeCanvas.drawRoundRect(
-                                0f, 0f, size.width, size.height, 24.dp.toPx(), 24.dp.toPx(), glowPaint
                             )
                         }
                     }
@@ -274,14 +264,14 @@ fun TvosAppIcon(
                 .focusable(interactionSource = interactionSource),
             contentAlignment = Alignment.Center
         ) {
-            Image(
+            androidx.compose.foundation.Image(
                 bitmap = app.icon,
                 contentDescription = app.label,
-                modifier = Modifier.size(62.dp),
+                modifier = Modifier.size(64.dp),
                 contentScale = ContentScale.Fit
             )
         }
-        
+
         Text(
             text = app.label,
             color = Color.White,
@@ -290,7 +280,7 @@ fun TvosAppIcon(
             textAlign = TextAlign.Center,
             maxLines = 1,
             modifier = Modifier
-                .padding(top = 10.dp)
+                .padding(top = 12.dp)
                 .alpha(textAlpha)
         )
     }
@@ -318,7 +308,7 @@ private suspend fun scanInstalledApplications(context: Context): List<AppModel> 
             drawableToBitmap(iconDrawable)
         }
         
-        result.add(AppModel(packageName, label, bitmap.asImageBitmap()))
+        result.add(AppModel(packageName, label, bitmap.asImageBitmap(), Color.Transparent))
     }
     result.sortedBy { it.label.lowercase(Locale.getDefault()) }
 }
