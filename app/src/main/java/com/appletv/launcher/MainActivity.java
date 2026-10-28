@@ -93,10 +93,8 @@ public class MainActivity extends Activity {
         gridRecycler = findViewById(R.id.grid_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
         
-        FrameLayout dockContainer = findViewById(R.id.dock_container);
-            });
-            dockContainer.setClipToOutline(true);
-        }
+        // Убрали принудительное ограничение контура (OutlineProvider) у дока, 
+        // чтобы тени и подсветка карточек никогда не обрезались по краям!
 
         if (heroTitle != null) {
             heroTitle.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
@@ -144,7 +142,7 @@ public class MainActivity extends Activity {
         float dockScaleMult = 1.18f;
         int dockCardWidthPx = (int) (gridCardWidthPx * dockScaleMult);
         int dockCardHeightPx = (int) (gridCardHeightPx * dockScaleMult);
-        int dockItemMarginPx = dpToPx((int)(10 * currentUiScale));
+        int dockItemMarginPx = dpToPx((int)(12 * currentUiScale));
 
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
         gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, gridCardWidthPx, gridCardHeightPx, gridItemMarginPx));
@@ -270,7 +268,7 @@ public class MainActivity extends Activity {
     private void animateAmbientGlow(int targetColor) {
         if (ambientGlowBg == null) return;
         ValueAnimator colorAnim = ValueAnimator.ofObject(new ArgbEvaluator(), currentGlowColor, targetColor);
-        colorAnim.setDuration(400); // Сделали перетекание фона еще мягче
+        colorAnim.setDuration(400);
         colorAnim.addUpdateListener(animator -> {
             int c = (int) animator.getAnimatedValue();
             currentGlowColor = c;
@@ -280,7 +278,6 @@ public class MainActivity extends Activity {
         colorAnim.start();
     }
 
-    // Внедряем строгий паттерн ViewHolder для контроля комплексных анимаций без утечек и лагов
     class AppViewHolder extends RecyclerView.ViewHolder {
         LinearLayout root;
         FrameLayout card;
@@ -302,6 +299,16 @@ public class MainActivity extends Activity {
             this.starBadge = starBadge;
             this.localLabel = localLabel;
             this.glareOverlay = glareOverlay;
+        }
+
+        public void resetState() {
+            if (scaleAnim != null) scaleAnim.cancel();
+            if (shimmerAnim != null) shimmerAnim.cancel();
+            card.setScaleX(1.0f);
+            card.setScaleY(1.0f);
+            card.setTranslationZ(dpToPx(4));
+            glareOverlay.setAlpha(0f);
+            localLabel.setAlpha(0f);
         }
     }
 
@@ -365,15 +372,13 @@ public class MainActivity extends Activity {
             int iconSize = isDock ? dpToPx((int)(66 * currentUiScale)) : dpToPx((int)(56 * currentUiScale));
             card.addView(iconImage, new FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER));
 
-            // ЭФФЕКТ ПЕРЕЛИВАЮЩЕГОСЯ БЛИКА (Glare Overlay)
             View glareOverlay = new View(ctx);
             GradientDrawable glareGd = new GradientDrawable(
                 GradientDrawable.Orientation.BL_TR,
-                new int[]{0x00FFFFFF, 0x00FFFFFF, 0x33FFFFFF, 0x77FFFFFF, 0x33FFFFFF, 0x00FFFFFF, 0x00FFFFFF}
+                new int[]{0x00FFFFFF, 0x00FFFFFF, 0x1AFFFFFF, 0x33FFFFFF, 0x1AFFFFFF, 0x00FFFFFF, 0x00FFFFFF}
             );
             glareOverlay.setBackground(glareGd);
-            // Блик шире карточки, чтобы движение было плавным и покрывало углы
-            glareOverlay.setLayoutParams(new FrameLayout.LayoutParams((int)(cardWidth * 1.8f), ViewGroup.LayoutParams.MATCH_PARENT));
+            glareOverlay.setLayoutParams(new FrameLayout.LayoutParams((int)(cardWidth * 2.0f), ViewGroup.LayoutParams.MATCH_PARENT));
             glareOverlay.setAlpha(0f);
             card.addView(glareOverlay);
 
@@ -412,9 +417,16 @@ public class MainActivity extends Activity {
         }
 
         @Override
-        public void onBindViewHolder(@NonNull AppViewHolder vh, int position) {
-            AppItem item = items.get(position);
+        public void onViewRecycled(@NonNull AppViewHolder holder) {
+            super.onViewRecycled(holder);
+            holder.resetState();
+        }
 
+        @Override
+        public void onBindViewHolder(@NonNull AppViewHolder vh, int position) {
+            vh.resetState();
+
+            AppItem item = items.get(position);
             vh.localLabel.setText(item.label);
 
             if (item.banner != null) {
@@ -429,7 +441,6 @@ public class MainActivity extends Activity {
                 vh.iconImage.setVisibility(View.VISIBLE);
             }
 
-            // Нативный цветной градиентный свет из-под карточки (Если Android 9+)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 vh.card.setOutlineSpotShadowColor(item.dominantColor);
                 vh.card.setOutlineAmbientShadowColor(item.dominantColor);
@@ -456,8 +467,6 @@ public class MainActivity extends Activity {
                 } else if (!isDock) {
                     vh.localLabel.setAlpha(1f);
                 }
-            } else {
-                if (!isDock) vh.localLabel.setAlpha(0f);
             }
 
             vh.root.setOnLongClickListener(v -> {
@@ -480,7 +489,9 @@ public class MainActivity extends Activity {
                             dockApps.remove(pos);
                             saveFavorites();
                             vh.starBadge.animate().alpha(0f).scaleX(0f).scaleY(0f).setDuration(200).start();
-                            if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyItemRemoved(pos);
+                            if (dockRecycler != null && dockRecycler.getAdapter() != null) {
+                                dockRecycler.getAdapter().notifyItemRemoved(pos);
+                            }
                         }
                     }
                 } else {
@@ -489,7 +500,9 @@ public class MainActivity extends Activity {
                         dockApps.remove(pos);
                         saveFavorites();
                         notifyItemRemoved(pos);
-                        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
+                        if (gridRecycler != null && gridRecycler.getAdapter() != null) {
+                            gridRecycler.getAdapter().notifyDataSetChanged();
+                        }
                     }
                 }
                 return true;
@@ -501,7 +514,6 @@ public class MainActivity extends Activity {
                 View dockContainer = ((Activity) ctx).findViewById(R.id.dock_container);
                 
                 if (hasFocus) {
-                    // 1. SPRING-АНИМАЦИЯ МАСШТАБА И ГЛУБОКАЯ ТЕНЬ (1.12x)
                     if (vh.scaleAnim != null) vh.scaleAnim.cancel();
                     vh.scaleAnim = new AnimatorSet();
                     ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.12f);
@@ -509,22 +521,20 @@ public class MainActivity extends Activity {
                     ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(30 * currentUiScale)));
                     vh.scaleAnim.playTogether(sx, sy, sz);
                     vh.scaleAnim.setDuration(350);
-                    vh.scaleAnim.setInterpolator(new OvershootInterpolator(1.1f)); // Мягкий эластичный отскок Apple TV
+                    vh.scaleAnim.setInterpolator(new OvershootInterpolator(1.1f));
                     vh.scaleAnim.start();
 
                     animateAmbientGlow(item.dominantColor);
                     
-                    // 2. ЗАПУСК КИНЕМАТОГРАФИЧНОГО БЛИКА ПО ПОВЕРХНОСТИ
-                    vh.glareOverlay.setAlpha(1f);
+                    vh.glareOverlay.animate().alpha(1f).setDuration(300).start();
                     if (vh.shimmerAnim == null) {
-                        vh.glareOverlay.setTranslationX(-cardWidth);
-                        vh.shimmerAnim = ObjectAnimator.ofFloat(vh.glareOverlay, "translationX", -cardWidth, cardWidth * 1.5f);
-                        vh.shimmerAnim.setDuration(2800); // Медленное и плавное прохождение света
+                        vh.glareOverlay.setTranslationX(-cardWidth * 1.2f);
+                        vh.shimmerAnim = ObjectAnimator.ofFloat(vh.glareOverlay, "translationX", -cardWidth * 1.2f, cardWidth * 2.0f);
+                        vh.shimmerAnim.setDuration(4200);
                         vh.shimmerAnim.setRepeatCount(ValueAnimator.INFINITE);
                     }
                     vh.shimmerAnim.start();
 
-                    // Тексты и авто-скролл
                     if (isDock) {
                         if (sv != null) sv.smoothScrollTo(0, 0);
                         if (heroTitle != null) {
@@ -544,7 +554,6 @@ public class MainActivity extends Activity {
                         vh.localLabel.animate().alpha(1f).setDuration(200).start();
                     }
                 } else {
-                    // 1. МЯГКИЙ ВОЗВРАТ КАРТОЧКИ В ИСХОДНОЕ СОСТОЯНИЕ
                     if (vh.scaleAnim != null) vh.scaleAnim.cancel();
                     vh.scaleAnim = new AnimatorSet();
                     ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.0f);
@@ -552,10 +561,9 @@ public class MainActivity extends Activity {
                     ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(4 * currentUiScale)));
                     vh.scaleAnim.playTogether(sx, sy, sz);
                     vh.scaleAnim.setDuration(250);
-                    vh.scaleAnim.setInterpolator(new DecelerateInterpolator(1.5f)); // Плавно тормозит в конце
+                    vh.scaleAnim.setInterpolator(new DecelerateInterpolator(1.5f));
                     vh.scaleAnim.start();
 
-                    // 2. ОТКЛЮЧЕНИЕ СВЕТОВОГО БЛИКА
                     if (vh.shimmerAnim != null) vh.shimmerAnim.cancel();
                     vh.glareOverlay.animate().alpha(0f).setDuration(200).start();
                     
