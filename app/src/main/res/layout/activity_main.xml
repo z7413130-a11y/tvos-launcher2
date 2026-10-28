@@ -34,7 +34,7 @@
             android:orientation="vertical"
             android:paddingBottom="120dp">
 
-            <!-- Отступ увеличен до 350dp (док опущен на ~8%) -->
+            <!-- Отступ 350dp (положение верхнего дока) -->
             <Space
                 android:layout_width="match_parent"
                 android:layout_height="350dp" />
@@ -66,10 +66,10 @@
                 </FrameLayout>
             </LinearLayout>
 
-            <!-- Отступ уменьшен до 65dp (сетка поднята на ~9%) -->
+            <!-- Отступ уменьшен до 50dp (сетка поднята еще на 4%) -->
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="65dp" />
+                android:layout_height="50dp" />
 
             <!-- СЕТКА ВСЕХ ПРИЛОЖЕНИЙ -->
             <androidx.recyclerview.widget.RecyclerView
