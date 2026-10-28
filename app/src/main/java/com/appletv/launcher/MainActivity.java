@@ -1,5 +1,7 @@
 package com.appletv.launcher;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
 import android.animation.ArgbEvaluator;
@@ -152,7 +154,7 @@ public class MainActivity extends Activity {
         int dockItemMarginPx = dpToPx((int)(8 * currentUiScale));
 
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
-        gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, gridCardWidthPx, gridCardHeightPx, dockItemMarginPx));
+        gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, dockCardWidthPx, dockCardHeightPx, dockItemMarginPx));
         
         if (dockRecycler != null) {
             dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
@@ -337,6 +339,7 @@ public class MainActivity extends Activity {
             if (shimmerAnim != null) shimmerAnim.cancel();
             card.setScaleX(1.0f);
             card.setScaleY(1.0f);
+            card.setAlpha(1.0f);
             card.setTranslationZ(dpToPx(4));
             glareOverlay.setAlpha(0f);
             localLabel.setAlpha(0f);
@@ -473,18 +476,35 @@ public class MainActivity extends Activity {
                 }
             }
 
+            // ПЛАВНАЯ АНИМАЦИЯ ПЕРЕНОСА ИЗБРАННОГО БЕЗ ПРЫЖКОВ ЭКРАНА
             vh.root.setOnLongClickListener(v -> {
                 if (!isDock) {
-                    dockApps.add(item);
-                    gridApps.remove(item);
-                    saveFavorites();
+                    // 1. Out-animation: Схлопывание иконки в сетке (нажатие -> scale down -> исчезновение)
+                    AnimatorSet outAnim = new AnimatorSet();
+                    ObjectAnimator pressX = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.15f, 0.9f, 0f);
+                    ObjectAnimator pressY = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.15f, 0.9f, 0f);
+                    ObjectAnimator fade = ObjectAnimator.ofFloat(vh.card, "alpha", 1f, 0f);
+                    outAnim.playTogether(pressX, pressY, fade);
+                    outAnim.setDuration(280);
+                    outAnim.setInterpolator(new DecelerateInterpolator());
                     
-                    if (dockRecycler != null && dockRecycler.getAdapter() != null) {
-                        dockRecycler.getAdapter().notifyItemInserted(dockApps.size() - 1);
-                        dockRecycler.smoothScrollToPosition(dockApps.size() - 1);
-                    }
-                    notifyDataSetChanged();
+                    outAnim.addListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            dockApps.add(item);
+                            gridApps.remove(item);
+                            saveFavorites();
+                            
+                            notifyDataSetChanged();
+                            if (dockRecycler != null && dockRecycler.getAdapter() != null) {
+                                dockRecycler.getAdapter().notifyItemInserted(dockApps.size() - 1);
+                            }
+                        }
+                    });
+                    outAnim.start();
+
                 } else {
+                    // Из дока в сетку
                     dockApps.remove(item);
                     gridApps.add(item);
                     Collections.sort(gridApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
@@ -499,9 +519,8 @@ public class MainActivity extends Activity {
             });
 
             vh.root.setOnFocusChangeListener((v, hasFocus) -> {
-                Context ctx = v.getContext();
-                ScrollView sv = ((Activity) ctx).findViewById(R.id.main_scroll_view);
-                View dockContainer = ((Activity) ctx).findViewById(R.id.dock_container);
+                ScrollView sv = findViewById(R.id.main_scroll_view);
+                View dockContainer = findViewById(R.id.dock_container);
                 
                 if (hasFocus) {
                     if (vh.scaleAnim != null) vh.scaleAnim.cancel();
@@ -526,18 +545,11 @@ public class MainActivity extends Activity {
                     vh.shimmerAnim.start();
 
                     if (isDock) {
-                        if (sv != null) sv.smoothScrollTo(0, 0);
                         if (heroTitle != null) {
                             heroTitle.animate().alpha(1f).setDuration(200).start();
                             heroTitle.setText(item.label);
                         }
                     } else {
-                        if (sv != null && dockContainer != null) {
-                            int targetY = dockContainer.getTop() - dpToPx((int)(24 * currentUiScale));
-                            if (sv.getScrollY() < targetY - dpToPx(30)) {
-                                sv.smoothScrollTo(0, targetY);
-                            }
-                        }
                         if (heroTitle != null) {
                             heroTitle.animate().alpha(0f).setDuration(200).start();
                         }
