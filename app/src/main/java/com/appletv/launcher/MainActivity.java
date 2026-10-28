@@ -53,7 +53,7 @@ public class MainActivity extends Activity {
     private final List<AppItem> gridApps = new ArrayList<>();
     private SharedPreferences prefs;
     private int currentGlowColor = 0xFF22222E;
-    private float currentUiScale = 1.0f; // Переменная для слежения за изменениями масштаба
+    private float currentUiScale = 1.0f;
 
     private final Map<String, Integer> fallbackBanners = new HashMap<>();
 
@@ -104,6 +104,8 @@ public class MainActivity extends Activity {
 
         if (heroTitle != null) {
             heroTitle.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
+            // Изначально скрываем заголовок, он появится при наведении на док
+            heroTitle.setAlpha(0f); 
         }
 
         if (dockRecycler != null) {
@@ -125,16 +127,13 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        // Динамический пересчет сетки при каждом возвращении на домашний экран (если пользователь менял масштаб)
         setupDynamicGrid();
     }
 
-    // Получаем коэффициент масштаба из настроек (по умолчанию 1.0)
     private float getUiScale() {
         return prefs.getFloat("ui_scale", 1.0f);
     }
 
-    // Умный авторасчет количества колонок на основе ширины экрана и текущего масштаба
     private void setupDynamicGrid() {
         if (gridRecycler == null) return;
         
@@ -142,28 +141,23 @@ public class MainActivity extends Activity {
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         int screenWidth = metrics.widthPixels;
         
-        // Базовые размеры карточки + новые плотные отступы (16dp по бокам)
         float baseItemTotalWidthDp = 144f + (16f * 2f);
         int itemTotalWidthPx = dpToPx((int)(baseItemTotalWidthDp * currentUiScale));
-        
-        // Безопасная зона по краям телевизора (минимум 64dp с каждой стороны)
         int safeZonePx = dpToPx(128); 
         
         int availableWidthPx = screenWidth - safeZonePx;
         int columns = availableWidthPx / itemTotalWidthPx;
         
-        if (columns < 4) columns = 4; // Защита от слишком маленького количества колонок
+        if (columns < 4) columns = 4;
 
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
         
-        // Обновляем адаптер, чтобы применить новый масштаб и плотные отступы
         if (gridRecycler.getAdapter() == null) {
             gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false));
         } else {
             gridRecycler.getAdapter().notifyDataSetChanged();
         }
         
-        // Обновляем верхний док, чтобы он тоже принял новый масштаб
         if (dockRecycler != null && dockRecycler.getAdapter() != null) {
             dockRecycler.getAdapter().notifyDataSetChanged();
         }
@@ -306,22 +300,36 @@ public class MainActivity extends Activity {
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            FrameLayout card = new FrameLayout(parent.getContext());
+            Context ctx = parent.getContext();
             
-            // Динамическое применение масштаба к ширине и высоте 16:9
-            int width = dpToPx((int)(144 * currentUiScale));
-            int height = dpToPx((int)(81 * currentUiScale));
-            
-            ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height);
-            
-            // НОВЫЕ ПЛОТНЫЕ ОТСТУПЫ: убраны огромные дыры, теперь иконки стоят кучно (по 16dp и 14dp)
+            // КОРНЕВОЙ КОНТЕЙНЕР (для карточки и локального текста)
+            LinearLayout root = new LinearLayout(ctx);
+            root.setOrientation(LinearLayout.VERTICAL);
+            root.setGravity(Gravity.CENTER_HORIZONTAL);
+            root.setFocusable(true);
+            root.setClickable(true);
+            root.setClipChildren(false); 
+            root.setClipToPadding(false);
+
             int marginX = isDock ? dpToPx((int)(10 * currentUiScale)) : dpToPx((int)(16 * currentUiScale));
             int marginY = isDock ? dpToPx((int)(10 * currentUiScale)) : dpToPx((int)(14 * currentUiScale));
             
-            lp.setMargins(marginX, marginY, marginX, marginY);
-            card.setLayoutParams(lp);
-            card.setFocusable(true);
-            card.setClickable(true);
+            RecyclerView.LayoutParams rootLp = new RecyclerView.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, 
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            rootLp.setMargins(marginX, marginY, marginX, marginY);
+            root.setLayoutParams(rootLp);
+            
+            // САМА КАРТОЧКА БАННЕРА 16:9
+            FrameLayout card = new FrameLayout(ctx);
+            card.setTag("main_card");
+            card.setFocusable(false); // Фокус берет на себя корневой LinearLayout
+            card.setClickable(false);
+            
+            int width = dpToPx((int)(144 * currentUiScale));
+            int height = dpToPx((int)(81 * currentUiScale));
+            card.setLayoutParams(new LinearLayout.LayoutParams(width, height));
             
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
@@ -331,17 +339,17 @@ public class MainActivity extends Activity {
             });
             card.setClipToOutline(true);
 
-            ImageView bgImage = new ImageView(parent.getContext());
+            ImageView bgImage = new ImageView(ctx);
             bgImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
             bgImage.setTag("bg_image");
             card.addView(bgImage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-            ImageView iconImage = new ImageView(parent.getContext());
+            ImageView iconImage = new ImageView(ctx);
             iconImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
             iconImage.setTag("icon_image");
             card.addView(iconImage, new FrameLayout.LayoutParams(dpToPx((int)(56 * currentUiScale)), dpToPx((int)(56 * currentUiScale)), Gravity.CENTER));
 
-            TextView starBadge = new TextView(parent.getContext());
+            TextView starBadge = new TextView(ctx);
             starBadge.setText("⭐");
             starBadge.setTextSize(12f * currentUiScale);
             FrameLayout.LayoutParams starLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
@@ -350,16 +358,48 @@ public class MainActivity extends Activity {
             starBadge.setTag("fav_star");
             card.addView(starBadge);
 
-            return new RecyclerView.ViewHolder(card) {};
+            root.addView(card);
+
+            // ЛОКАЛЬНАЯ ТЕКСТОВАЯ ПОДПИСЬ ПОД КАРТОЧКОЙ
+            TextView localLabel = new TextView(ctx);
+            localLabel.setTag("local_label");
+            localLabel.setTextSize(13f * currentUiScale);
+            localLabel.setTextColor(Color.WHITE);
+            localLabel.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            localLabel.setSingleLine(true);
+            localLabel.setGravity(Gravity.CENTER);
+            localLabel.setAlpha(0f); // По умолчанию скрыта
+            
+            LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, 
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            labelLp.setMargins(0, dpToPx((int)(8 * currentUiScale)), 0, 0);
+            localLabel.setLayoutParams(labelLp);
+            
+            // Если это верхний док, полностью прячем локальную подпись, чтобы не занимала место
+            if (isDock) {
+                localLabel.setVisibility(View.GONE);
+            }
+            
+            root.addView(localLabel);
+
+            return new RecyclerView.ViewHolder(root) {};
         }
 
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             AppItem item = items.get(position);
-            FrameLayout card = (FrameLayout) holder.itemView;
+            LinearLayout root = (LinearLayout) holder.itemView;
+            
+            FrameLayout card = (FrameLayout) root.findViewWithTag("main_card");
             ImageView bgImage = (ImageView) card.findViewWithTag("bg_image");
             ImageView iconImage = (ImageView) card.findViewWithTag("icon_image");
             TextView starBadge = (TextView) card.findViewWithTag("fav_star");
+            TextView localLabel = (TextView) root.findViewWithTag("local_label");
+
+            // Присваиваем имя локальному тексту
+            localLabel.setText(item.label);
 
             if (item.banner != null) {
                 bgImage.setImageDrawable(item.banner);
@@ -387,7 +427,20 @@ public class MainActivity extends Activity {
                 starBadge.setAlpha(0f); starBadge.setScaleX(0f); starBadge.setScaleY(0f);
             }
 
-            card.setOnLongClickListener(v -> {
+            // Страховка состояния при перерисовке сетки
+            if (root.isFocused()) {
+                if (isDock && heroTitle != null) {
+                    heroTitle.setAlpha(1f);
+                    heroTitle.setText(item.label);
+                } else if (!isDock) {
+                    localLabel.setAlpha(1f);
+                }
+            } else {
+                if (!isDock) localLabel.setAlpha(0f);
+            }
+
+            // Нажатия вешаются на корневой элемент
+            root.setOnLongClickListener(v -> {
                 if (!isDock) {
                     AppItem favItem = null;
                     for (AppItem a : dockApps) {
@@ -422,18 +475,37 @@ public class MainActivity extends Activity {
                 return true;
             });
 
-            card.setOnFocusChangeListener((v, hasFocus) -> {
+            root.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
-                    // Анимация увеличения с учетом глобального UI Scale
+                    // Анимация увеличения карточки (card)
                     animateScale(card, 1.10f, 1.10f, dpToPx((int)(30 * currentUiScale)));
                     animateAmbientGlow(item.dominantColor);
-                    if (heroTitle != null) heroTitle.setText(item.label);
+                    
+                    // МАГИЯ ПЕРЕКЛЮЧЕНИЯ ТЕКСТА
+                    if (isDock) {
+                        // Фокус в верхнем доке: гасим локальный текст (на всякий), зажигаем глобальный Hero-заголовок
+                        if (heroTitle != null) {
+                            heroTitle.animate().alpha(1f).setDuration(200).start();
+                            heroTitle.setText(item.label);
+                        }
+                    } else {
+                        // Фокус в нижней сетке: плавно гасим Hero-заголовок, зажигаем локальную подпись под карточкой
+                        if (heroTitle != null) {
+                            heroTitle.animate().alpha(0f).setDuration(200).start();
+                        }
+                        localLabel.animate().alpha(1f).setDuration(200).start();
+                    }
                 } else {
                     animateScale(card, 1.0f, 1.0f, 0f);
+                    
+                    // Если уходим с карточки из нижней сетки — плавно прячем её личную подпись
+                    if (!isDock) {
+                        localLabel.animate().alpha(0f).setDuration(200).start();
+                    }
                 }
             });
 
-            card.setOnClickListener(v -> {
+            root.setOnClickListener(v -> {
                 PackageManager pm = getPackageManager();
                 Intent launch = pm.getLeanbackLaunchIntentForPackage(item.packageName);
                 if (launch == null) launch = pm.getLaunchIntentForPackage(item.packageName);
