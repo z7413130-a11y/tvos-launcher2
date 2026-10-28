@@ -43,15 +43,17 @@
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
-                <!-- Снимаем clipToOutline/clipChildren, чтобы подсветка карточек внутри дока никогда не обрезалась -->
+                <!-- Возвращаем clipToOutline для идеальной формы Apple TV, но делаем симметричные отступы 22dp -->
                 <FrameLayout
                     android:id="@+id/dock_container"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:minHeight="135dp"
+                    android:minHeight="140dp"
                     android:layout_marginHorizontal="48dp"
-                    android:paddingVertical="18dp"
+                    android:paddingVertical="22dp"
+                    android:paddingHorizontal="16dp"
                     android:background="@drawable/glass_dock_bg"
+                    android:clipToOutline="true"
                     android:clipChildren="false"
                     android:clipToPadding="false">
 

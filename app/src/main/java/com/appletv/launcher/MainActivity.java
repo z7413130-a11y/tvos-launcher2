@@ -91,6 +91,17 @@ public class MainActivity extends Activity {
         dockRecycler = findViewById(R.id.dock_recycler);
         gridRecycler = findViewById(R.id.grid_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
+        
+        FrameLayout dockContainer = findViewById(R.id.dock_container);
+        if (dockContainer != null) {
+            dockContainer.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(36));
+                }
+            });
+            dockContainer.setClipToOutline(true);
+        }
 
         if (heroTitle != null) {
             heroTitle.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
@@ -135,10 +146,10 @@ public class MainActivity extends Activity {
         int gridCardWidthPx = itemCellWidthPx - (gridItemMarginPx * 2);
         int gridCardHeightPx = (int) (gridCardWidthPx * (9f / 16f)); 
 
-        float dockScaleMult = 1.18f;
+        float dockScaleMult = 1.15f; // Чуть компактнее, чтобы карточки идеально сидели внутри дока без вылазиния
         int dockCardWidthPx = (int) (gridCardWidthPx * dockScaleMult);
         int dockCardHeightPx = (int) (gridCardHeightPx * dockScaleMult);
-        int dockItemMarginPx = dpToPx((int)(12 * currentUiScale));
+        int dockItemMarginPx = dpToPx((int)(10 * currentUiScale));
 
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
         gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, gridCardWidthPx, gridCardHeightPx, gridItemMarginPx));
@@ -282,7 +293,7 @@ public class MainActivity extends Activity {
         TextView starBadge;
         TextView localLabel;
         View glareOverlay;
-        View glowBorder; // Слой точечной подсветки рамки при фокусе
+        View glowBorder; // Тонкая элегантная белая рамка при фокусе
         
         ObjectAnimator shimmerAnim;
         AnimatorSet scaleAnim;
@@ -306,7 +317,7 @@ public class MainActivity extends Activity {
             card.setScaleY(1.0f);
             card.setTranslationZ(dpToPx(4));
             glareOverlay.setAlpha(0f);
-            glowBorder.setAlpha(0f); // Сброс подсветки для невыбранных карточек
+            glowBorder.setAlpha(0f);
             localLabel.setAlpha(0f);
         }
     }
@@ -371,7 +382,7 @@ public class MainActivity extends Activity {
             int iconSize = isDock ? dpToPx((int)(66 * currentUiScale)) : dpToPx((int)(56 * currentUiScale));
             card.addView(iconImage, new FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER));
 
-            // Мягкий световой блик по поверхности
+            // Мягкий белый бегающий блик
             View glareOverlay = new View(ctx);
             GradientDrawable glareGd = new GradientDrawable(
                 GradientDrawable.Orientation.BL_TR,
@@ -382,10 +393,18 @@ public class MainActivity extends Activity {
             glareOverlay.setAlpha(0f);
             card.addView(glareOverlay);
 
-            // Слой рамки подсветки (включается СТРОГО при фокусе)
+            // Тонкая чистая белая обводка (свечение) строго при фокусе
             View glowBorder = new View(ctx);
             glowBorder.setAlpha(0f);
             glowBorder.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            
+            GradientDrawable borderDrawable = new GradientDrawable();
+            borderDrawable.setShape(GradientDrawable.RECTANGLE);
+            borderDrawable.setCornerRadius(dpToPx(12));
+            borderDrawable.setStroke(dpToPx(2), 0x99FFFFFF); // Полупрозрачная белая рамка без цветных ореолов
+            borderDrawable.setColor(Color.TRANSPARENT);
+            glowBorder.setBackground(borderDrawable);
+            
             card.addView(glowBorder);
 
             TextView starBadge = new TextView(ctx);
@@ -446,14 +465,6 @@ public class MainActivity extends Activity {
                 vh.iconImage.setImageDrawable(item.icon);
                 vh.iconImage.setVisibility(View.VISIBLE);
             }
-
-            // Динамическая рамка подсветки под доминирующий цвет приложения
-            GradientDrawable borderDrawable = new GradientDrawable();
-            borderDrawable.setShape(GradientDrawable.RECTANGLE);
-            borderDrawable.setCornerRadius(dpToPx(12));
-            borderDrawable.setStroke(dpToPx(2), item.dominantColor);
-            borderDrawable.setColor(Color.TRANSPARENT);
-            vh.glowBorder.setBackground(borderDrawable);
 
             boolean isFav = false;
             for (AppItem a : dockApps) {
@@ -521,7 +532,6 @@ public class MainActivity extends Activity {
                 View dockContainer = ((Activity) ctx).findViewById(R.id.dock_container);
                 
                 if (hasFocus) {
-                    // 1. Увеличение карточки
                     if (vh.scaleAnim != null) vh.scaleAnim.cancel();
                     vh.scaleAnim = new AnimatorSet();
                     ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.12f);
@@ -534,7 +544,7 @@ public class MainActivity extends Activity {
 
                     animateAmbientGlow(item.dominantColor);
                     
-                    // 2. Включаем свечение и блик СТРОГО для выбранной карточки
+                    // Включаем белую рамку и блик строго для выбранной карточки
                     vh.glowBorder.animate().alpha(1f).setDuration(200).start();
                     vh.glareOverlay.animate().alpha(1f).setDuration(300).start();
                     if (vh.shimmerAnim == null) {
@@ -564,7 +574,6 @@ public class MainActivity extends Activity {
                         vh.localLabel.animate().alpha(1f).setDuration(200).start();
                     }
                 } else {
-                    // Возврат в обычное состояние
                     if (vh.scaleAnim != null) vh.scaleAnim.cancel();
                     vh.scaleAnim = new AnimatorSet();
                     ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.0f);
@@ -575,7 +584,6 @@ public class MainActivity extends Activity {
                     vh.scaleAnim.setInterpolator(new DecelerateInterpolator(1.5f));
                     vh.scaleAnim.start();
 
-                    // Выключаем свечение и блик при уходе фокуса
                     vh.glowBorder.animate().alpha(0f).setDuration(150).start();
                     if (vh.shimmerAnim != null) vh.shimmerAnim.cancel();
                     vh.glareOverlay.animate().alpha(0f).setDuration(200).start();
