@@ -66,10 +66,10 @@
                 </FrameLayout>
             </LinearLayout>
 
-            <!-- Отступ уменьшен до 50dp (сетка поднята еще на 4%) -->
+            <!-- Отступ уменьшен до 25dp (сетка поднята еще на 7%) -->
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="50dp" />
+                android:layout_height="25dp" />
 
             <!-- СЕТКА ВСЕХ ПРИЛОЖЕНИЙ -->
             <androidx.recyclerview.widget.RecyclerView
