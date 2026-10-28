@@ -35,7 +35,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="350dp" />
 
-            <!-- ГЛАВНЫЙ ДОК (ИЗБРАННОЕ) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -43,18 +42,18 @@
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
-                <!-- ФИКСИРОВАННЫЙ РАЗМЕР: ширина match_parent и высота 125dp, чтобы не сжимался -->
+                <!-- ИЗМЕНЕНО: layout_height="wrap_content" + minHeight="125dp" для поддержки масштабирования -->
                 <FrameLayout
                     android:id="@+id/dock_container"
                     android:layout_width="match_parent"
-                    android:layout_height="125dp"
+                    android:layout_height="wrap_content"
+                    android:minHeight="125dp"
                     android:layout_marginHorizontal="32dp"
                     android:background="@drawable/glass_dock_bg"
                     android:clipToOutline="true"
                     android:clipChildren="true"
                     android:clipToPadding="false">
 
-                    <!-- padding перенесен сюда. Иконки будут заезжать за скругленные углы FrameLayout -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/dock_recycler"
                         android:layout_width="match_parent"
@@ -71,7 +70,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="25dp" />
 
-            <!-- СЕТКА ВСЕХ ПРИЛОЖЕНИЙ -->
+            <!-- СЕТКА (Авто-колонки) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/grid_recycler"
                 android:layout_width="wrap_content"

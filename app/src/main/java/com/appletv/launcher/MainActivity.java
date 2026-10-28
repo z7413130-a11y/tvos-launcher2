@@ -19,6 +19,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -52,8 +53,8 @@ public class MainActivity extends Activity {
     private final List<AppItem> gridApps = new ArrayList<>();
     private SharedPreferences prefs;
     private int currentGlowColor = 0xFF22222E;
+    private float currentUiScale = 1.0f; // Переменная для слежения за изменениями масштаба
 
-    // ГЛОБАЛЬНЫЙ СПРАВОЧНИК кастомных баннеров для fallback-подмены
     private final Map<String, Integer> fallbackBanners = new HashMap<>();
 
     public static class AppItem {
@@ -79,7 +80,6 @@ public class MainActivity extends Activity {
 
         prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
 
-        // Инициализация справочника (ключ - часть имени пакета, значение - ресурс баннера)
         fallbackBanners.put("youtube", R.drawable.banner_youtube);
         fallbackBanners.put("kinopoisk", R.drawable.banner_kinopoisk);
         fallbackBanners.put("vk.video", R.drawable.banner_vk);
@@ -111,11 +111,6 @@ public class MainActivity extends Activity {
             dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true));
         }
 
-        if (gridRecycler != null) {
-            gridRecycler.setLayoutManager(new GridLayoutManager(this, 4));
-            gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false));
-        }
-
         if (btnSettings != null) {
             btnSettings.setOnClickListener(v -> {
                 try {
@@ -125,6 +120,53 @@ public class MainActivity extends Activity {
         }
 
         loadInstalledApps();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Динамический пересчет сетки при каждом возвращении на домашний экран (если пользователь менял масштаб)
+        setupDynamicGrid();
+    }
+
+    // Получаем коэффициент масштаба из настроек (по умолчанию 1.0)
+    private float getUiScale() {
+        return prefs.getFloat("ui_scale", 1.0f);
+    }
+
+    // Умный авторасчет количества колонок на основе ширины экрана и текущего масштаба
+    private void setupDynamicGrid() {
+        if (gridRecycler == null) return;
+        
+        currentUiScale = getUiScale();
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        int screenWidth = metrics.widthPixels;
+        
+        // Базовые размеры карточки + новые плотные отступы (16dp по бокам)
+        float baseItemTotalWidthDp = 144f + (16f * 2f);
+        int itemTotalWidthPx = dpToPx((int)(baseItemTotalWidthDp * currentUiScale));
+        
+        // Безопасная зона по краям телевизора (минимум 64dp с каждой стороны)
+        int safeZonePx = dpToPx(128); 
+        
+        int availableWidthPx = screenWidth - safeZonePx;
+        int columns = availableWidthPx / itemTotalWidthPx;
+        
+        if (columns < 4) columns = 4; // Защита от слишком маленького количества колонок
+
+        gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
+        
+        // Обновляем адаптер, чтобы применить новый масштаб и плотные отступы
+        if (gridRecycler.getAdapter() == null) {
+            gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false));
+        } else {
+            gridRecycler.getAdapter().notifyDataSetChanged();
+        }
+        
+        // Обновляем верхний док, чтобы он тоже принял новый масштаб
+        if (dockRecycler != null && dockRecycler.getAdapter() != null) {
+            dockRecycler.getAdapter().notifyDataSetChanged();
+        }
     }
 
     private void saveFavorites() {
@@ -173,18 +215,14 @@ public class MainActivity extends Activity {
 
     private void loadInstalledApps() {
         PackageManager pm = getPackageManager();
-        
-        // Умный сборщик: сначала собираем ТВ-версии, потом дополняем мобильными
         Map<String, ResolveInfo> uniqueApps = new HashMap<>();
 
-        // 1. Ищем ТВ-приложения (LEANBACK_LAUNCHER - там лежат официальные баннеры 16:9)
         Intent leanbackIntent = new Intent(Intent.ACTION_MAIN, null);
         leanbackIntent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
         for (ResolveInfo ri : pm.queryIntentActivities(leanbackIntent, 0)) {
             uniqueApps.put(ri.activityInfo.packageName, ri);
         }
 
-        // 2. Ищем мобильные приложения (LAUNCHER) и добавляем только те, которых нет в ТВ-списке
         Intent launcherIntent = new Intent(Intent.ACTION_MAIN, null);
         launcherIntent.addCategory(Intent.CATEGORY_LAUNCHER);
         for (ResolveInfo ri : pm.queryIntentActivities(launcherIntent, 0)) {
@@ -202,10 +240,8 @@ public class MainActivity extends Activity {
             String label = ri.loadLabel(pm).toString();
             Drawable icon = ri.loadIcon(pm);
             int domColor = extractDominantColor(icon);
-            
             Drawable banner = null;
 
-            // ПРИОРИТЕТ 1: Вытягиваем официальный ТВ-баннер из манифеста приложения
             try {
                 banner = ri.activityInfo.loadBanner(pm);
                 if (banner == null && ri.activityInfo.applicationInfo != null) {
@@ -213,7 +249,6 @@ public class MainActivity extends Activity {
                 }
             } catch (Exception ignored) {}
 
-            // ПРИОРИТЕТ 2: Если официального баннера нет, ищем в нашем справочнике
             if (banner == null) {
                 for (Map.Entry<String, Integer> entry : fallbackBanners.entrySet()) {
                     if (pkg.contains(entry.getKey())) {
@@ -244,9 +279,6 @@ public class MainActivity extends Activity {
                 }
             }
         }
-
-        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
-        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
     }
 
     private void animateAmbientGlow(int targetColor) {
@@ -276,12 +308,15 @@ public class MainActivity extends Activity {
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             FrameLayout card = new FrameLayout(parent.getContext());
             
-            int width = dpToPx(144);
-            int height = dpToPx(81);
+            // Динамическое применение масштаба к ширине и высоте 16:9
+            int width = dpToPx((int)(144 * currentUiScale));
+            int height = dpToPx((int)(81 * currentUiScale));
             
             ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height);
-            int marginX = isDock ? dpToPx(10) : dpToPx(38);
-            int marginY = isDock ? dpToPx(10) : dpToPx(30);
+            
+            // НОВЫЕ ПЛОТНЫЕ ОТСТУПЫ: убраны огромные дыры, теперь иконки стоят кучно (по 16dp и 14dp)
+            int marginX = isDock ? dpToPx((int)(10 * currentUiScale)) : dpToPx((int)(16 * currentUiScale));
+            int marginY = isDock ? dpToPx((int)(10 * currentUiScale)) : dpToPx((int)(14 * currentUiScale));
             
             lp.setMargins(marginX, marginY, marginX, marginY);
             card.setLayoutParams(lp);
@@ -291,7 +326,7 @@ public class MainActivity extends Activity {
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(12));
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx((int)(12 * currentUiScale)));
                 }
             });
             card.setClipToOutline(true);
@@ -304,14 +339,13 @@ public class MainActivity extends Activity {
             ImageView iconImage = new ImageView(parent.getContext());
             iconImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
             iconImage.setTag("icon_image");
-            // Сделали иконку чуть крупнее (56dp) для премиального вида на фоне 16:9
-            card.addView(iconImage, new FrameLayout.LayoutParams(dpToPx(56), dpToPx(56), Gravity.CENTER));
+            card.addView(iconImage, new FrameLayout.LayoutParams(dpToPx((int)(56 * currentUiScale)), dpToPx((int)(56 * currentUiScale)), Gravity.CENTER));
 
             TextView starBadge = new TextView(parent.getContext());
             starBadge.setText("⭐");
-            starBadge.setTextSize(12f);
+            starBadge.setTextSize(12f * currentUiScale);
             FrameLayout.LayoutParams starLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
-            starLp.setMargins(0, dpToPx(4), dpToPx(6), 0);
+            starLp.setMargins(0, dpToPx((int)(4 * currentUiScale)), dpToPx((int)(6 * currentUiScale)), 0);
             starBadge.setLayoutParams(starLp);
             starBadge.setTag("fav_star");
             card.addView(starBadge);
@@ -328,20 +362,13 @@ public class MainActivity extends Activity {
             TextView starBadge = (TextView) card.findViewWithTag("fav_star");
 
             if (item.banner != null) {
-                // Если есть ТВ-баннер (Официальный или Кастомный)
                 bgImage.setImageDrawable(item.banner);
                 iconImage.setVisibility(View.GONE);
             } else {
-                // ПРИОРИТЕТ 3: Автогенератор 16:9 (для мобильных приложений)
                 int baseColor = item.dominantColor;
-                // Затемняем доминирующий цвет для градиента
                 int darkColor = Color.rgb((int)(Color.red(baseColor) * 0.25f), (int)(Color.green(baseColor) * 0.25f), (int)(Color.blue(baseColor) * 0.25f));
-                
-                // Стильный диагональный градиент
                 GradientDrawable gradient = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{baseColor, darkColor});
                 bgImage.setImageDrawable(gradient);
-                
-                // Иконка строго по центру
                 iconImage.setImageDrawable(item.icon);
                 iconImage.setVisibility(View.VISIBLE);
             }
@@ -397,7 +424,8 @@ public class MainActivity extends Activity {
 
             card.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
-                    animateScale(card, 1.10f, 1.10f, dpToPx(30));
+                    // Анимация увеличения с учетом глобального UI Scale
+                    animateScale(card, 1.10f, 1.10f, dpToPx((int)(30 * currentUiScale)));
                     animateAmbientGlow(item.dominantColor);
                     if (heroTitle != null) heroTitle.setText(item.label);
                 } else {
@@ -405,7 +433,6 @@ public class MainActivity extends Activity {
                 }
             });
 
-            // Обработчик нажатия тоже улучшен: ищем Leanback Intent, если его нет - берем мобильный
             card.setOnClickListener(v -> {
                 PackageManager pm = getPackageManager();
                 Intent launch = pm.getLeanbackLaunchIntentForPackage(item.packageName);
