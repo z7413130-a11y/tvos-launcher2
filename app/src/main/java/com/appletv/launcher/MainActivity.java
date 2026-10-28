@@ -104,7 +104,6 @@ public class MainActivity extends Activity {
 
         if (heroTitle != null) {
             heroTitle.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
-            // Изначально скрываем заголовок, он появится при наведении на док
             heroTitle.setAlpha(0f); 
         }
 
@@ -278,7 +277,7 @@ public class MainActivity extends Activity {
     private void animateAmbientGlow(int targetColor) {
         if (ambientGlowBg == null) return;
         ValueAnimator colorAnim = ValueAnimator.ofObject(new ArgbEvaluator(), currentGlowColor, targetColor);
-        colorAnim.setDuration(280);
+        colorAnim.setDuration(300); // Синхронизируем свечение с фокусом
         colorAnim.addUpdateListener(animator -> {
             int c = (int) animator.getAnimatedValue();
             currentGlowColor = c;
@@ -302,7 +301,6 @@ public class MainActivity extends Activity {
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             Context ctx = parent.getContext();
             
-            // КОРНЕВОЙ КОНТЕЙНЕР (для карточки и локального текста)
             LinearLayout root = new LinearLayout(ctx);
             root.setOrientation(LinearLayout.VERTICAL);
             root.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -321,11 +319,13 @@ public class MainActivity extends Activity {
             rootLp.setMargins(marginX, marginY, marginX, marginY);
             root.setLayoutParams(rootLp);
             
-            // САМА КАРТОЧКА БАННЕРА 16:9
             FrameLayout card = new FrameLayout(ctx);
             card.setTag("main_card");
-            card.setFocusable(false); // Фокус берет на себя корневой LinearLayout
+            card.setFocusable(false);
             card.setClickable(false);
+            
+            // Базовый мягкий уровень тени для всех карточек
+            card.setElevation(dpToPx((int)(4 * currentUiScale)));
             
             int width = dpToPx((int)(144 * currentUiScale));
             int height = dpToPx((int)(81 * currentUiScale));
@@ -360,7 +360,6 @@ public class MainActivity extends Activity {
 
             root.addView(card);
 
-            // ЛОКАЛЬНАЯ ТЕКСТОВАЯ ПОДПИСЬ ПОД КАРТОЧКОЙ
             TextView localLabel = new TextView(ctx);
             localLabel.setTag("local_label");
             localLabel.setTextSize(13f * currentUiScale);
@@ -368,7 +367,7 @@ public class MainActivity extends Activity {
             localLabel.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             localLabel.setSingleLine(true);
             localLabel.setGravity(Gravity.CENTER);
-            localLabel.setAlpha(0f); // По умолчанию скрыта
+            localLabel.setAlpha(0f); 
             
             LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, 
@@ -377,7 +376,6 @@ public class MainActivity extends Activity {
             labelLp.setMargins(0, dpToPx((int)(8 * currentUiScale)), 0, 0);
             localLabel.setLayoutParams(labelLp);
             
-            // Если это верхний док, полностью прячем локальную подпись, чтобы не занимала место
             if (isDock) {
                 localLabel.setVisibility(View.GONE);
             }
@@ -398,7 +396,6 @@ public class MainActivity extends Activity {
             TextView starBadge = (TextView) card.findViewWithTag("fav_star");
             TextView localLabel = (TextView) root.findViewWithTag("local_label");
 
-            // Присваиваем имя локальному тексту
             localLabel.setText(item.label);
 
             if (item.banner != null) {
@@ -427,7 +424,6 @@ public class MainActivity extends Activity {
                 starBadge.setAlpha(0f); starBadge.setScaleX(0f); starBadge.setScaleY(0f);
             }
 
-            // Страховка состояния при перерисовке сетки
             if (root.isFocused()) {
                 if (isDock && heroTitle != null) {
                     heroTitle.setAlpha(1f);
@@ -439,7 +435,6 @@ public class MainActivity extends Activity {
                 if (!isDock) localLabel.setAlpha(0f);
             }
 
-            // Нажатия вешаются на корневой элемент
             root.setOnLongClickListener(v -> {
                 if (!isDock) {
                     AppItem favItem = null;
@@ -477,30 +472,27 @@ public class MainActivity extends Activity {
 
             root.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
-                    // Анимация увеличения карточки (card)
+                    // Глубокий, мягкий и эластичный ZOOM
                     animateScale(card, 1.10f, 1.10f, dpToPx((int)(30 * currentUiScale)));
                     animateAmbientGlow(item.dominantColor);
                     
-                    // МАГИЯ ПЕРЕКЛЮЧЕНИЯ ТЕКСТА
                     if (isDock) {
-                        // Фокус в верхнем доке: гасим локальный текст (на всякий), зажигаем глобальный Hero-заголовок
                         if (heroTitle != null) {
-                            heroTitle.animate().alpha(1f).setDuration(200).start();
+                            heroTitle.animate().alpha(1f).setDuration(300).setInterpolator(new DecelerateInterpolator(2.0f)).start();
                             heroTitle.setText(item.label);
                         }
                     } else {
-                        // Фокус в нижней сетке: плавно гасим Hero-заголовок, зажигаем локальную подпись под карточкой
                         if (heroTitle != null) {
-                            heroTitle.animate().alpha(0f).setDuration(200).start();
+                            heroTitle.animate().alpha(0f).setDuration(300).setInterpolator(new DecelerateInterpolator(2.0f)).start();
                         }
-                        localLabel.animate().alpha(1f).setDuration(200).start();
+                        localLabel.animate().alpha(1f).setDuration(300).setInterpolator(new DecelerateInterpolator(2.0f)).start();
                     }
                 } else {
+                    // Мягкий возврат
                     animateScale(card, 1.0f, 1.0f, 0f);
                     
-                    // Если уходим с карточки из нижней сетки — плавно прячем её личную подпись
                     if (!isDock) {
-                        localLabel.animate().alpha(0f).setDuration(200).start();
+                        localLabel.animate().alpha(0f).setDuration(300).setInterpolator(new DecelerateInterpolator(2.0f)).start();
                     }
                 }
             });
@@ -519,14 +511,15 @@ public class MainActivity extends Activity {
         }
     }
 
+    // Централизованный метод анимации с интерполятором замедления (DecelerateInterpolator(2.0f))
     private void animateScale(View view, float sx, float sy, float elev) {
         ObjectAnimator ax = ObjectAnimator.ofFloat(view, "scaleX", sx);
         ObjectAnimator ay = ObjectAnimator.ofFloat(view, "scaleY", sy);
         ObjectAnimator az = ObjectAnimator.ofFloat(view, "translationZ", elev);
         AnimatorSet set = new AnimatorSet();
         set.playTogether(ax, ay, az);
-        set.setDuration(180);
-        set.setInterpolator(new DecelerateInterpolator());
+        set.setDuration(300); // Строго 300 мс для синхронизации со скроллом и текстом
+        set.setInterpolator(new DecelerateInterpolator(2.0f)); // Эластичное "кинематографичное" замедление
         set.start();
     }
 }
