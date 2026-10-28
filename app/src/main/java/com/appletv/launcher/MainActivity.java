@@ -54,12 +54,14 @@ public class MainActivity extends Activity {
         public String packageName;
         public String label;
         public Drawable icon;
+        public Drawable banner;
         public int dominantColor;
 
-        public AppItem(String packageName, String label, Drawable icon, int dominantColor) {
+        public AppItem(String packageName, String label, Drawable icon, Drawable banner, int dominantColor) {
             this.packageName = packageName;
             this.label = label;
             this.icon = icon;
+            this.banner = banner;
             this.dominantColor = dominantColor;
         }
     }
@@ -77,7 +79,6 @@ public class MainActivity extends Activity {
         gridRecycler = findViewById(R.id.grid_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
         
-        // Аппаратная обрезка для идеального закругления дока по краям (радиус 36dp)
         FrameLayout dockContainer = findViewById(R.id.dock_container);
         if (dockContainer != null) {
             dockContainer.setOutlineProvider(new ViewOutlineProvider() {
@@ -132,11 +133,7 @@ public class MainActivity extends Activity {
             if (drawable instanceof BitmapDrawable) {
                 bitmap = ((BitmapDrawable) drawable).getBitmap();
             } else {
-                bitmap = Bitmap.createBitmap(
-                    Math.max(1, drawable.getIntrinsicWidth()),
-                    Math.max(1, drawable.getIntrinsicHeight()),
-                    Bitmap.Config.ARGB_8888
-                );
+                bitmap = Bitmap.createBitmap(Math.max(1, drawable.getIntrinsicWidth()), Math.max(1, drawable.getIntrinsicHeight()), Bitmap.Config.ARGB_8888);
                 Canvas canvas = new Canvas(bitmap);
                 drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
                 drawable.draw(canvas);
@@ -156,9 +153,7 @@ public class MainActivity extends Activity {
                         }
                     }
                 }
-                if (count > 0) {
-                    return Color.rgb((int)(r / count), (int)(g / count), (int)(b / count));
-                }
+                if (count > 0) return Color.rgb((int)(r / count), (int)(g / count), (int)(b / count));
             }
         } catch (Exception ignored) {}
         return 0xFF2C2C2E;
@@ -177,12 +172,34 @@ public class MainActivity extends Activity {
                 String label = ri.loadLabel(pm).toString();
                 Drawable icon = ri.loadIcon(pm);
                 int domColor = extractDominantColor(icon);
-                allApps.add(new AppItem(pkg, label, icon, domColor));
+                
+                Drawable banner = null;
+                
+                // Приоритет 2: Кастомные баннеры лаунчера для популярных сервисов
+                if (pkg.contains("youtube")) {
+                    banner = getDrawable(R.drawable.banner_youtube);
+                } else if (pkg.contains("kinopoisk")) {
+                    banner = getDrawable(R.drawable.banner_kinopoisk);
+                } else if (pkg.contains("vk.video") || pkg.equals("com.vk.tv")) {
+                    banner = getDrawable(R.drawable.banner_vk);
+                }
+                
+                // Приоритет 1: Официальный ТВ-баннер от разработчиков приложения
+                if (banner == null) {
+                    try {
+                        if (ri.activityInfo.banner != 0) {
+                            banner = pm.getDrawable(pkg, ri.activityInfo.banner, ri.activityInfo.applicationInfo);
+                        } else if (ri.activityInfo.applicationInfo != null && ri.activityInfo.applicationInfo.banner != 0) {
+                            banner = pm.getDrawable(pkg, ri.activityInfo.applicationInfo.banner, ri.activityInfo.applicationInfo);
+                        }
+                    } catch (Exception ignored) {}
+                }
+
+                allApps.add(new AppItem(pkg, label, icon, banner, domColor));
             }
         }
 
         Collections.sort(allApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
-
         gridApps.clear();
         gridApps.addAll(allApps);
 
@@ -201,12 +218,8 @@ public class MainActivity extends Activity {
             }
         }
 
-        if (dockRecycler != null && dockRecycler.getAdapter() != null) {
-            dockRecycler.getAdapter().notifyDataSetChanged();
-        }
-        if (gridRecycler != null && gridRecycler.getAdapter() != null) {
-            gridRecycler.getAdapter().notifyDataSetChanged();
-        }
+        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
+        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
     }
 
     private void animateAmbientGlow(int targetColor) {
@@ -216,10 +229,7 @@ public class MainActivity extends Activity {
         colorAnim.addUpdateListener(animator -> {
             int c = (int) animator.getAnimatedValue();
             currentGlowColor = c;
-            GradientDrawable gd = new GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{c, 0xFF050508}
-            );
+            GradientDrawable gd = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{c, 0xFF050508});
             ambientGlowBg.setBackground(gd);
         });
         colorAnim.start();
@@ -239,8 +249,9 @@ public class MainActivity extends Activity {
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             FrameLayout card = new FrameLayout(parent.getContext());
             
-            int width = dpToPx(138);
-            int height = dpToPx(82);
+            // Строгое соотношение 16:9
+            int width = dpToPx(144);
+            int height = dpToPx(81);
             
             ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height);
             int marginX = isDock ? dpToPx(10) : dpToPx(38);
@@ -254,27 +265,31 @@ public class MainActivity extends Activity {
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(18));
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(12));
                 }
             });
             card.setClipToOutline(true);
 
-            // Основная иконка приложения
-            ImageView iv = new ImageView(parent.getContext());
-            iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            card.addView(iv, new FrameLayout.LayoutParams(dpToPx(50), dpToPx(50), Gravity.CENTER));
+            // Слой 1: Фон (либо ТВ-баннер, либо сгенерированный градиент)
+            ImageView bgImage = new ImageView(parent.getContext());
+            bgImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            bgImage.setTag("bg_image");
+            card.addView(bgImage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-            // Звездочка индикатора избранного (изначально скрыта)
+            // Слой 2: Мобильная иконка (показывается только если нет ТВ-баннера)
+            ImageView iconImage = new ImageView(parent.getContext());
+            iconImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            iconImage.setTag("icon_image");
+            card.addView(iconImage, new FrameLayout.LayoutParams(dpToPx(46), dpToPx(46), Gravity.CENTER));
+
+            // Слой 3: Звездочка избранного
             TextView starBadge = new TextView(parent.getContext());
             starBadge.setText("⭐");
             starBadge.setTextSize(12f);
-            FrameLayout.LayoutParams starLp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, 
-                Gravity.TOP | Gravity.END
-            );
+            FrameLayout.LayoutParams starLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
             starLp.setMargins(0, dpToPx(4), dpToPx(6), 0);
             starBadge.setLayoutParams(starLp);
-            starBadge.setTag("fav_star"); // Метка, чтобы быстро находить звездочку в коде
+            starBadge.setTag("fav_star");
             card.addView(starBadge);
 
             return new RecyclerView.ViewHolder(card) {};
@@ -284,23 +299,25 @@ public class MainActivity extends Activity {
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
             AppItem item = items.get(position);
             FrameLayout card = (FrameLayout) holder.itemView;
-            ImageView iv = (ImageView) card.getChildAt(0);
+            ImageView bgImage = (ImageView) card.findViewWithTag("bg_image");
+            ImageView iconImage = (ImageView) card.findViewWithTag("icon_image");
             TextView starBadge = (TextView) card.findViewWithTag("fav_star");
 
-            iv.setImageDrawable(item.icon);
-
             int baseColor = item.dominantColor;
-            int darkColor = Color.rgb(
-                (int)(Color.red(baseColor) * 0.5f),
-                (int)(Color.green(baseColor) * 0.5f),
-                (int)(Color.blue(baseColor) * 0.5f)
-            );
+            int darkColor = Color.rgb((int)(Color.red(baseColor) * 0.4f), (int)(Color.green(baseColor) * 0.4f), (int)(Color.blue(baseColor) * 0.4f));
 
-            GradientDrawable cardBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{baseColor, darkColor});
-            cardBg.setCornerRadius(dpToPx(18));
-            card.setBackground(cardBg);
+            if (item.banner != null) {
+                // Если есть официальный или кастомный баннер
+                bgImage.setImageDrawable(item.banner);
+                iconImage.setVisibility(View.GONE);
+            } else {
+                // Приоритет 3: Автогенератор 16:9
+                GradientDrawable gradient = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{baseColor, darkColor});
+                bgImage.setImageDrawable(gradient);
+                iconImage.setImageDrawable(item.icon);
+                iconImage.setVisibility(View.VISIBLE);
+            }
 
-            // Логика отображения звездочки: только в сетке и только если приложение есть в доке
             boolean isFav = false;
             for (AppItem a : dockApps) {
                 if (a.packageName.equals(item.packageName)) {
@@ -310,65 +327,41 @@ public class MainActivity extends Activity {
             }
 
             if (!isDock && isFav) {
-                starBadge.setAlpha(1f);
-                starBadge.setScaleX(1f);
-                starBadge.setScaleY(1f);
+                starBadge.setAlpha(1f); starBadge.setScaleX(1f); starBadge.setScaleY(1f);
             } else {
-                starBadge.setAlpha(0f);
-                starBadge.setScaleX(0f);
-                starBadge.setScaleY(0f);
+                starBadge.setAlpha(0f); starBadge.setScaleX(0f); starBadge.setScaleY(0f);
             }
 
-            // Обработка зажатия кнопки (Добавление / Удаление)
             card.setOnLongClickListener(v -> {
                 if (!isDock) {
                     AppItem favItem = null;
                     for (AppItem a : dockApps) {
-                        if (a.packageName.equals(item.packageName)) {
-                            favItem = a;
-                            break;
-                        }
+                        if (a.packageName.equals(item.packageName)) { favItem = a; break; }
                     }
                     if (favItem == null) {
-                        // ДОБАВИТЬ В ИЗБРАННОЕ
                         dockApps.add(item);
                         saveFavorites();
-                        
-                        // Красивая плавная анимация появления звездочки с отскоком
-                        starBadge.animate().alpha(1f).scaleX(1f).scaleY(1f)
-                            .setDuration(300).setInterpolator(new OvershootInterpolator()).start();
-                        
+                        starBadge.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(300).setInterpolator(new OvershootInterpolator()).start();
                         if (dockRecycler != null && dockRecycler.getAdapter() != null) {
                             dockRecycler.getAdapter().notifyItemInserted(dockApps.size() - 1);
                             dockRecycler.smoothScrollToPosition(dockApps.size() - 1);
                         }
                     } else {
-                        // УБРАТЬ ИЗ ИЗБРАННОГО (если зажали иконку со звездочкой в сетке)
                         int pos = dockApps.indexOf(favItem);
                         if (pos >= 0) {
                             dockApps.remove(pos);
                             saveFavorites();
-                            
-                            // Анимация исчезновения
                             starBadge.animate().alpha(0f).scaleX(0f).scaleY(0f).setDuration(200).start();
-                            
-                            if (dockRecycler != null && dockRecycler.getAdapter() != null) {
-                                dockRecycler.getAdapter().notifyItemRemoved(pos);
-                            }
+                            if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyItemRemoved(pos);
                         }
                     }
                 } else {
-                    // Удалить из избранного (если зажали иконку прямо внутри дока)
                     int pos = dockApps.indexOf(item);
                     if (pos >= 0) {
                         dockApps.remove(pos);
                         saveFavorites();
                         notifyItemRemoved(pos);
-                        
-                        // Оповещаем сетку внизу, чтобы у соответствующего приложения исчезла звездочка
-                        if (gridRecycler != null && gridRecycler.getAdapter() != null) {
-                            gridRecycler.getAdapter().notifyDataSetChanged();
-                        }
+                        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
                     }
                 }
                 return true;
@@ -376,11 +369,10 @@ public class MainActivity extends Activity {
 
             card.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
-                    animateScale(card, 1.15f, 1.15f, dpToPx(28));
+                    // Плавное увеличение на ~10% (scale 1.1) и глубокая тень
+                    animateScale(card, 1.10f, 1.10f, dpToPx(30));
                     animateAmbientGlow(baseColor);
-                    if (heroTitle != null) {
-                        heroTitle.setText(item.label);
-                    }
+                    if (heroTitle != null) heroTitle.setText(item.label);
                 } else {
                     animateScale(card, 1.0f, 1.0f, 0f);
                 }
