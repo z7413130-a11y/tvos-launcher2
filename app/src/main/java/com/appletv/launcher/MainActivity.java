@@ -142,19 +142,24 @@ public class MainActivity extends Activity {
         int columns = 6;
         int itemCellWidthPx = availableWidthPx / columns;
         
-        int itemMarginPx = dpToPx((int)(8 * currentUiScale));
-        int cardWidthPx = itemCellWidthPx - (itemMarginPx * 2);
-        int cardHeightPx = (int) (cardWidthPx * (9f / 16f)); 
+        // Размеры карточек для основной сетки
+        int gridItemMarginPx = dpToPx((int)(8 * currentUiScale));
+        int gridCardWidthPx = itemCellWidthPx - (gridItemMarginPx * 2);
+        int gridCardHeightPx = (int) (gridCardWidthPx * (9f / 16f)); 
 
-        // Математика удаления высоты дока убрана! 
-        // Док снова подстраивается сам и остается широким за счет minHeight в XML.
+        // Размеры карточек для Избранного (Dock) увеличены на 18% для премиальной массивности
+        float dockScaleMult = 1.18f;
+        int dockCardWidthPx = (int) (gridCardWidthPx * dockScaleMult);
+        int dockCardHeightPx = (int) (gridCardHeightPx * dockScaleMult);
+        int dockItemMarginPx = dpToPx((int)(10 * currentUiScale));
 
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
-        gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, cardWidthPx, cardHeightPx, itemMarginPx));
+        gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, gridCardWidthPx, gridCardHeightPx, gridItemMarginPx));
         
         if (dockRecycler != null) {
             dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-            dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true, cardWidthPx, cardHeightPx, itemMarginPx));
+            // Передаем увеличенные размеры
+            dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true, dockCardWidthPx, dockCardHeightPx, dockItemMarginPx));
         }
     }
 
@@ -343,7 +348,9 @@ public class MainActivity extends Activity {
             ImageView iconImage = new ImageView(ctx);
             iconImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
             iconImage.setTag("icon_image");
-            card.addView(iconImage, new FrameLayout.LayoutParams(dpToPx((int)(56 * currentUiScale)), dpToPx((int)(56 * currentUiScale)), Gravity.CENTER));
+            // Иконка масштабируется пропорционально размеру карточки
+            int iconSize = isDock ? dpToPx((int)(66 * currentUiScale)) : dpToPx((int)(56 * currentUiScale));
+            card.addView(iconImage, new FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER));
 
             TextView starBadge = new TextView(ctx);
             starBadge.setText("⭐");

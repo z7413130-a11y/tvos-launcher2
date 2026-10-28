@@ -43,23 +43,25 @@
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
-                <!-- Вернули minHeight="125dp", чтобы док всегда был просторным -->
+                <!-- Добавили paddingVertical="18dp", чтобы создать симметричный запас под анимацию увеличения -->
                 <FrameLayout
                     android:id="@+id/dock_container"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:minHeight="125dp"
                     android:layout_marginHorizontal="48dp"
+                    android:paddingVertical="18dp"
                     android:background="@drawable/glass_dock_bg"
                     android:clipToOutline="true"
                     android:clipChildren="true"
                     android:clipToPadding="false">
 
+                    <!-- Изменили на wrap_content и layout_gravity="center" для идеального выравнивания -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/dock_recycler"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:paddingVertical="10dp"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
                         android:clipChildren="false"
                         android:clipToPadding="false"
                         android:orientation="horizontal" />
