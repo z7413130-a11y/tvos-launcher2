@@ -19,7 +19,7 @@
         android:layout_height="match_parent"
         android:background="@drawable/hero_gradient_overlay" />
 
-    <!-- ЕДИНЫЙ СКРОЛЛ ВСЕГО ЭКРАНА (Никаких переключений, всё нативно) -->
+    <!-- ЕДИНЫЙ СКРОЛЛ ВСЕГО ЭКРАНА -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -34,7 +34,7 @@
             android:orientation="vertical"
             android:paddingBottom="120dp">
 
-            <!-- Отступ, который опускает док и оставляет нижнюю сетку слегка видимой -->
+            <!-- Отступ, который опускает док -->
             <Space
                 android:layout_width="match_parent"
                 android:layout_height="320dp" />
@@ -66,12 +66,12 @@
                 </FrameLayout>
             </LinearLayout>
 
-            <!-- Отступ между доком и сеткой -->
+            <!-- Увеличенный отступ, чтобы сетка пряталась ниже (было 36dp, стало 100dp) -->
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="36dp" />
+                android:layout_height="100dp" />
 
-            <!-- СЕТКА ПРИЛОЖЕНИЙ (Верхушки первого ряда будут торчать на экране) -->
+            <!-- СЕТКА ВСЕХ ПРИЛОЖЕНИЙ -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/grid_recycler"
                 android:layout_width="match_parent"
@@ -84,13 +84,13 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- ВЕРХНЯЯ ГРАДИЕНТНАЯ МАСКА (Чтобы док растворялся, уходя вверх за часы и заголовок) -->
+    <!-- ВЕРХНЯЯ ГРАДИЕНТНАЯ МАСКА -->
     <View
         android:layout_width="match_parent"
         android:layout_height="140dp"
         android:background="@drawable/top_fade_gradient" />
 
-    <!-- СТАТИЧНЫЙ ЗАГОЛОВОК И ЧАСЫ (Всегда поверх всего) -->
+    <!-- СТАТИЧНЫЙ ЗАГОЛОВОК И ЧАСЫ -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="80dp"

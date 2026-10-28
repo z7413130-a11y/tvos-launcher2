@@ -165,13 +165,14 @@ public class MainActivity extends Activity {
         dockApps.clear();
         gridApps.clear();
 
+        // В док идут первые 6 приложений
         int limit = Math.min(6, allApps.size());
         for (int i = 0; i < limit; i++) {
             dockApps.add(allApps.get(i));
         }
-        for (int i = limit; i < allApps.size(); i++) {
-            gridApps.add(allApps.get(i));
-        }
+        
+        // В сетку теперь идут ВООБЩЕ ВСЕ установленные приложения (а не только остатки)
+        gridApps.addAll(allApps);
 
         if (dockRecycler != null && dockRecycler.getAdapter() != null) {
             dockRecycler.getAdapter().notifyDataSetChanged();
