@@ -223,30 +223,26 @@ public class MainActivity extends Activity {
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         int screenWidth = metrics.widthPixels;
         
-        // Математическая хитрость: уменьшаем боковые отступы экрана, чтобы дать больше ширины сетке
-        int screenMarginsPx = dpToPx((int)(30 * currentUiScale)); 
+        // Математика для ИДЕАЛЬНО РОВНЫХ КОЛОНОК
+        // Отступы по краям 52dp (36 margin + 16 padding) = 104dp общих отступов
+        int screenMarginsPx = dpToPx((int)(104 * currentUiScale)); 
         int availableWidthPx = screenWidth - screenMarginsPx;
         
         int columns = 6;
         int itemCellWidthPx = availableWidthPx / columns;
         
-        // Увеличиваем отступы между самими карточками (чтобы при зуме 1.12x они не касались друг друга)
-        // Но так как availableWidthPx стал больше, итоговый размер карточки (gridCardWidthPx) останется ровно таким же крупным!
-        int gridItemMarginPx = dpToPx((int)(8.5f * currentUiScale));
-        int gridCardWidthPx = itemCellWidthPx - (gridItemMarginPx * 2);
-        int gridCardHeightPx = (int) (gridCardWidthPx * (9f / 16f)); 
-
-        float dockScaleMult = 1.15f;
-        int dockCardWidthPx = (int) (gridCardWidthPx * dockScaleMult);
-        int dockCardHeightPx = (int) (gridCardHeightPx * dockScaleMult);
-        int dockItemMarginPx = dpToPx((int)(9 * currentUiScale));
+        // Единые отступы и единый размер карточек для всего лаунчера
+        int itemMarginPx = dpToPx((int)(8 * currentUiScale));
+        int cardWidthPx = itemCellWidthPx - (itemMarginPx * 2);
+        int cardHeightPx = (int) (cardWidthPx * (9f / 16f)); 
 
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
-        gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, gridCardWidthPx, gridCardHeightPx, gridItemMarginPx));
+        gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, cardWidthPx, cardHeightPx, itemMarginPx));
         
         if (dockRecycler != null) {
             dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-            dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true, dockCardWidthPx, dockCardHeightPx, dockItemMarginPx));
+            // Внимание: Передаем ТЕ ЖЕ САМЫЕ cardWidthPx, cardHeightPx и itemMarginPx
+            dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true, cardWidthPx, cardHeightPx, itemMarginPx));
         }
     }
 
@@ -561,11 +557,10 @@ public class MainActivity extends Activity {
                 vh.iconImage.setVisibility(View.VISIBLE);
             }
 
-            // ЗАПРЕЩАЕМ УХОД ФОКУСА ВВЕРХ ИЗ ДОКА
             vh.root.setOnKeyListener((v, keyCode, event) -> {
                 if (event.getAction() == KeyEvent.ACTION_DOWN) {
                     if (isDock && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                        return true; // Блокируем побег фокуса за пределы экрана!
+                        return true;
                     }
                 }
                 return false;
@@ -659,7 +654,6 @@ public class MainActivity extends Activity {
                     }
                     vh.shimmerAnim.start();
 
-                    // Полностью скрываем и показываем заголовок и ЧАСЫ (всё привязано к фокусу дока)
                     if (isDock) {
                         if (heroTitle != null) {
                             heroTitle.animate().alpha(1f).setDuration(200).start();
