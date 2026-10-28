@@ -88,7 +88,9 @@
         android:layout_height="140dp"
         android:background="@drawable/top_fade_gradient" />
 
+    <!-- Верхняя панель с ID для синхронной анимации скрытия -->
     <RelativeLayout
+        android:id="@+id/top_status_container"
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:layout_marginTop="28dp"

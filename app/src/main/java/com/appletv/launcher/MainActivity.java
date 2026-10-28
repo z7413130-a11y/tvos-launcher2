@@ -23,6 +23,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
@@ -47,6 +48,9 @@ import java.util.Map;
 public class MainActivity extends Activity {
 
     private TextView heroTitle;
+    private View topStatusContainer;
+    private ScrollView mainScrollView;
+    private View dockContainer;
     private View ambientGlowBg;
     private RecyclerView dockRecycler;
     private RecyclerView gridRecycler;
@@ -57,6 +61,7 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private int currentGlowColor = 0xFF22222E;
     private float currentUiScale = 1.0f;
+    private boolean isInGridView = false; // Состояние перехода к сетке
 
     private final Map<String, Integer> fallbackBanners = new HashMap<>();
 
@@ -102,12 +107,14 @@ public class MainActivity extends Activity {
         fallbackBanners.put("vk.tv", R.drawable.banner_vk);
 
         heroTitle = findViewById(R.id.hero_title);
+        topStatusContainer = findViewById(R.id.top_status_container);
+        mainScrollView = findViewById(R.id.main_scroll_view);
+        dockContainer = findViewById(R.id.dock_container);
         ambientGlowBg = findViewById(R.id.ambient_glow_bg);
         dockRecycler = findViewById(R.id.dock_recycler);
         gridRecycler = findViewById(R.id.grid_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
         
-        FrameLayout dockContainer = findViewById(R.id.dock_container);
         if (dockContainer != null) {
             dockContainer.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
@@ -120,7 +127,6 @@ public class MainActivity extends Activity {
 
         if (heroTitle != null) {
             heroTitle.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
-            heroTitle.setAlpha(0f); 
         }
 
         if (btnSettings != null) {
@@ -138,6 +144,109 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         setupDynamicGrid();
+    }
+
+    // Перехват нажатий пульта для мгновенного перехода между состояниями tvOS
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            View focused = getCurrentFocus();
+            if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN) {
+                if (isViewInDock(focused) && !isInGridView) {
+                    moveToGridView();
+                    return true;
+                }
+            } else if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP) {
+                if (isViewInFirstGridRow(focused) && isInGridView) {
+                    moveToDockView();
+                    return true;
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    private boolean isViewInDock(View v) {
+        if (v == null || dockRecycler == null) return false;
+        View p = (View) v.getParent();
+        while (p != null) {
+            if (p == dockRecycler) return true;
+            p = (p.getParent() instanceof View) ? (View) p.getParent() : null;
+        }
+        return false;
+    }
+
+    private boolean isViewInFirstGridRow(View v) {
+        if (v == null || gridRecycler == null) return false;
+        RecyclerView.ViewHolder holder = gridRecycler.getChildViewHolder(v);
+        if (holder != null) {
+            int pos = holder.getAdapterPosition();
+            GridLayoutManager glm = (GridLayoutManager) gridRecycler.getLayoutManager();
+            int spanCount = glm != null ? glm.getSpanCount() : 6;
+            return pos >= 0 && pos < spanCount;
+        }
+        return false;
+    }
+
+    private void moveToGridView() {
+        isInGridView = true;
+        // 1. Плавно скрываем верхнюю панель
+        if (topStatusContainer != null) {
+            topStatusContainer.animate()
+                .alpha(0f)
+                .translationY(-dpToPx(30))
+                .setDuration(300)
+                .setInterpolator(new DecelerateInterpolator())
+                .start();
+        }
+        // 2. Скроллим к сетке
+        if (mainScrollView != null && dockContainer != null) {
+            int targetY = dockContainer.getTop() - dpToPx(24);
+            mainScrollView.smoothScrollTo(0, targetY);
+        }
+        // 3. Переводим фокус на первый элемент сетки
+        if (gridRecycler != null && gridRecycler.getAdapter() != null && gridRecycler.getAdapter().getItemCount() > 0) {
+            RecyclerView.ViewHolder firstHolder = gridRecycler.findViewHolderForAdapterPosition(0);
+            if (firstHolder != null) {
+                firstHolder.itemView.requestFocus();
+            } else {
+                gridRecycler.scrollToPosition(0);
+                gridRecycler.post(() -> {
+                    RecyclerView.ViewHolder h = gridRecycler.findViewHolderForAdapterPosition(0);
+                    if (h != null) h.itemView.requestFocus();
+                });
+            }
+        }
+    }
+
+    private void moveToDockView() {
+        isInGridView = false;
+        // 1. Плавно показываем верхнюю панель обратно
+        if (topStatusContainer != null) {
+            topStatusContainer.animate()
+                .alpha(1f)
+                .translationY(0)
+                .setDuration(300)
+                .setInterpolator(new DecelerateInterpolator())
+                .start();
+        }
+        // 2. Скроллим наверх к доку
+        if (mainScrollView != null) {
+            mainScrollView.smoothScrollTo(0, 0);
+        }
+        // 3. Возвращаем фокус на первый элемент дока
+        if (dockRecycler != null && dockRecycler.getAdapter() != null && dockRecycler.getAdapter().getItemCount() > 0) {
+            RecyclerView.ViewHolder firstHolder = dockRecycler.findViewHolderForAdapterPosition(0);
+            if (firstHolder != null) {
+                firstHolder.itemView.requestFocus();
+            } else {
+                dockRecycler.scrollToPosition(0);
+                dockRecycler.post(() -> {
+                    RecyclerView.ViewHolder h = dockRecycler.findViewHolderForAdapterPosition(0);
+                    if (h != null) h.itemView.requestFocus();
+                });
+            }
+        }
     }
 
     private float getUiScale() {
@@ -170,7 +279,6 @@ public class MainActivity extends Activity {
         gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, gridCardWidthPx, gridCardHeightPx, gridItemMarginPx));
         
         if (dockRecycler != null) {
-            // wrap_content и выравнивание по левому краю для правильного заполнения дока
             dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
             dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true, dockCardWidthPx, dockCardHeightPx, dockItemMarginPx));
         }
@@ -296,7 +404,6 @@ public class MainActivity extends Activity {
         dockApps.clear();
         gridApps.clear();
 
-        // Заполняем док строго уникальными избранными без дублирования
         for (String favPkg : favList) {
             for (AppItem app : allApps) {
                 if (app.packageName.equals(favPkg) && !dockApps.contains(app)) {
@@ -306,7 +413,6 @@ public class MainActivity extends Activity {
             }
         }
 
-        // Остальные приложения отправляем в сетку без дублирования
         for (AppItem app : allApps) {
             boolean inFav = false;
             for (AppItem f : dockApps) {
@@ -473,7 +579,6 @@ public class MainActivity extends Activity {
         public void onBindViewHolder(@NonNull AppViewHolder vh, int position) {
             vh.resetState();
 
-            // Безопасная проверка выхода за границы списка
             if (position < 0 || position >= items.size()) return;
             AppItem item = items.get(position);
             vh.localLabel.setText(item.label);
@@ -499,7 +604,6 @@ public class MainActivity extends Activity {
                 }
             }
 
-            // ПЛАВНАЯ АНИМАЦИЯ СХЛОПЫВАНИЯ И ПЕРЕНОСА МЕЖДУ СЕТКОЙ И ДОКОМ С ЗАЩИТОЙ ОТ ДУБЛИКАЦИИ
             vh.root.setOnLongClickListener(v -> {
                 if (!isDock) {
                     if (dockApps.contains(item)) return true;
