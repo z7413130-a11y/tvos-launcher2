@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
+
+    <!-- Диагональный градиент: от 40% белого к 10% белого. Имитирует блик света на поверхности стекла -->
+    <gradient
+        android:startColor="#66FFFFFF"
+        android:centerColor="#26FFFFFF"
+        android:endColor="#1AFFFFFF"
+        android:angle="135" />
+
+    <!-- Радиус Apple TV -->
     <corners android:radius="36dp" />
-    <!-- Полупрозрачный белый цвет (15% непрозрачности) -->
-    <solid android:color="#26FFFFFF" />
-    <!-- Тонкая белая окантовка для эффекта блика на стекле (25% непрозрачности) -->
+
+    <!-- Яркая тонкая окантовка (40% белого) для эффекта полированного края стекла -->
     <stroke
         android:width="1.5dp"
-        android:color="#40FFFFFF" />
+        android:color="#66FFFFFF" />
 </shape>
