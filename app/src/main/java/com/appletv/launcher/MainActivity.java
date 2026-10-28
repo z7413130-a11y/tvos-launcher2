@@ -86,6 +86,7 @@ public class MainActivity extends Activity {
         }
 
         if (gridRecycler != null) {
+            // Оставляем 6 колонок, адаптер раздвинет элементы сам
             gridRecycler.setLayoutManager(new GridLayoutManager(this, 6));
             gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false));
         }
@@ -165,13 +166,10 @@ public class MainActivity extends Activity {
         dockApps.clear();
         gridApps.clear();
 
-        // В док идут первые 6 приложений
         int limit = Math.min(6, allApps.size());
         for (int i = 0; i < limit; i++) {
             dockApps.add(allApps.get(i));
         }
-        
-        // В сетку теперь идут ВООБЩЕ ВСЕ установленные приложения (а не только остатки)
         gridApps.addAll(allApps);
 
         if (dockRecycler != null && dockRecycler.getAdapter() != null) {
@@ -216,7 +214,12 @@ public class MainActivity extends Activity {
             int height = dpToPx(82);
             
             ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height);
-            lp.setMargins(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10));
+            
+            // Если это верхний док - отступы стандартные. Если нижняя сетка - отступы увеличены в 2.5 раза
+            int marginX = isDock ? dpToPx(10) : dpToPx(25);
+            int marginY = isDock ? dpToPx(10) : dpToPx(25);
+            
+            lp.setMargins(marginX, marginY, marginX, marginY);
             card.setLayoutParams(lp);
             card.setFocusable(true);
             card.setClickable(true);
