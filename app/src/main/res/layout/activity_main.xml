@@ -41,10 +41,10 @@
             android:orientation="vertical"
             android:paddingBottom="120dp">
 
-            <!-- ВОТ ЗДЕСЬ ОПУСКАЕМ ВЕСЬ БЛОК: было 350dp, стало 440dp -->
+            <!-- ВОТ ЗДЕСЬ ПОДНЯЛИ ДОК: было 440dp, стало 400dp -->
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="440dp" />
+                android:layout_height="400dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
