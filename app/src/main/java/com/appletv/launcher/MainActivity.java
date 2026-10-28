@@ -23,7 +23,6 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
@@ -63,9 +62,7 @@ public class MainActivity extends Activity {
     private int currentGlowColor = 0xFF22222E;
     private float currentUiScale = 1.0f;
     
-    // Глобальные состояния экрана
     private boolean isGridViewOpen = false; 
-    private boolean isAnimatingTransition = false; // Блокировка пульта во время анимации
 
     private final Map<String, Integer> fallbackBanners = new HashMap<>();
 
@@ -143,6 +140,7 @@ public class MainActivity extends Activity {
         }
 
         loadInstalledApps();
+        setupGlobalFocusListener();
     }
 
     @Override
@@ -151,26 +149,20 @@ public class MainActivity extends Activity {
         setupDynamicGrid();
     }
 
-    // Идеальный глобальный перехват пульта: защищает от дребезга и запускает цельный переход
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        if (isAnimatingTransition) return true; // Игнорируем любые нажатия, пока идет красивая анимация
+    private void setupGlobalFocusListener() {
+        final View decorView = getWindow().getDecorView();
+        decorView.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
+            boolean fromDock = isViewInDock(oldFocus);
+            boolean toGrid = isViewInGrid(newFocus);
+            boolean fromGrid = isViewInGrid(oldFocus);
+            boolean toDock = isViewInDock(newFocus);
 
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            View focused = getCurrentFocus();
-            if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN) {
-                if (!isGridViewOpen && isViewInDock(focused)) {
-                    openGridView(focused);
-                    return true; // Полностью блокируем системный Android-скролл
-                }
-            } else if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP) {
-                if (isGridViewOpen && isViewInFirstGridRow(focused)) {
-                    closeGridView(focused);
-                    return true; // Полностью блокируем системный Android-скролл
-                }
+            if (fromDock && toGrid && !isGridViewOpen) {
+                openGridView();
+            } else if (fromGrid && toDock && isGridViewOpen) {
+                closeGridView();
             }
-        }
-        return super.dispatchKeyEvent(event);
+        });
     }
 
     private boolean isViewInDock(View v) {
@@ -184,116 +176,48 @@ public class MainActivity extends Activity {
         return false;
     }
 
-    private boolean isViewInFirstGridRow(View v) {
+    private boolean isViewInGrid(View v) {
         if (v == null || gridRecycler == null) return false;
         View parent = v;
         while (parent != null) {
-            if (parent.getParent() == gridRecycler) {
-                RecyclerView.ViewHolder holder = gridRecycler.getChildViewHolder(parent);
-                if (holder != null) {
-                    return holder.getAdapterPosition() >= 0 && holder.getAdapterPosition() < 6;
-                }
-                break;
-            }
+            if (parent == gridRecycler) return true;
             if (!(parent.getParent() instanceof View)) break;
             parent = (View) parent.getParent();
         }
         return false;
     }
 
-    private int getFocusedAdapterPosition(RecyclerView recycler, View focused) {
-        if (focused == null || recycler == null) return 0;
-        View parent = focused;
-        while (parent != null) {
-            if (parent.getParent() == recycler) {
-                RecyclerView.ViewHolder holder = recycler.getChildViewHolder(parent);
-                if (holder != null) return holder.getAdapterPosition();
-            }
-            if (!(parent.getParent() instanceof View)) break;
-            parent = (View) parent.getParent();
-        }
-        return 0;
-    }
-
-    private void openGridView(View currentFocus) {
-        if (gridApps.isEmpty()) return;
+    private void openGridView() {
         isGridViewOpen = true;
-        isAnimatingTransition = true;
-
-        int targetIndex = getFocusedAdapterPosition(dockRecycler, currentFocus);
-        if (targetIndex >= gridApps.size()) targetIndex = gridApps.size() - 1;
-        final int finalTarget = Math.max(0, targetIndex);
 
         if (topStatusContainer != null) {
-            topStatusContainer.animate().alpha(0f).translationY(-dpToPx(40)).setDuration(400).setInterpolator(new DecelerateInterpolator(1.5f)).start();
+            topStatusContainer.animate().alpha(0f).translationY(-dpToPx(40)).setDuration(300).setInterpolator(new DecelerateInterpolator()).start();
         }
+        
         if (gridDarkOverlay != null) {
-            gridDarkOverlay.animate().alpha(1f).setDuration(400).start();
+            gridDarkOverlay.animate().alpha(1f).setDuration(300).start();
         }
 
-        // Анимируем ScrollView напрямую, чтобы переход был плавным и кинематографичным
-        int targetScrollY = dockContainer.getTop() - dpToPx(24);
-        ObjectAnimator scrollAnim = ObjectAnimator.ofInt(mainScrollView, "scrollY", targetScrollY);
-        scrollAnim.setDuration(400);
-        scrollAnim.setInterpolator(new DecelerateInterpolator(1.5f));
-        scrollAnim.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                isAnimatingTransition = false;
-                RecyclerView.ViewHolder h = gridRecycler.findViewHolderForAdapterPosition(finalTarget);
-                if (h != null) {
-                    h.itemView.requestFocus();
-                } else {
-                    gridRecycler.scrollToPosition(finalTarget);
-                    gridRecycler.post(() -> {
-                        RecyclerView.ViewHolder holder = gridRecycler.findViewHolderForAdapterPosition(finalTarget);
-                        if (holder != null) holder.itemView.requestFocus();
-                    });
-                }
-            }
-        });
-        scrollAnim.start();
+        // Чистый системный скролл без кастомных аниматоров
+        if (mainScrollView != null && dockContainer != null) {
+            mainScrollView.smoothScrollTo(0, dockContainer.getTop() - dpToPx(24));
+        }
     }
 
-    private void closeGridView(View currentFocus) {
+    private void closeGridView() {
         isGridViewOpen = false;
-        isAnimatingTransition = true;
-
-        int targetIndex = getFocusedAdapterPosition(gridRecycler, currentFocus);
-        if (targetIndex >= dockApps.size()) targetIndex = dockApps.size() - 1;
-        final int finalTarget = Math.max(0, targetIndex);
 
         if (topStatusContainer != null) {
-            topStatusContainer.animate().alpha(1f).translationY(0).setDuration(400).setInterpolator(new DecelerateInterpolator(1.5f)).start();
+            topStatusContainer.animate().alpha(1f).translationY(0).setDuration(300).setInterpolator(new DecelerateInterpolator()).start();
         }
+        
         if (gridDarkOverlay != null) {
-            gridDarkOverlay.animate().alpha(0f).setDuration(400).start();
+            gridDarkOverlay.animate().alpha(0f).setDuration(300).start();
         }
 
-        ObjectAnimator scrollAnim = ObjectAnimator.ofInt(mainScrollView, "scrollY", 0);
-        scrollAnim.setDuration(400);
-        scrollAnim.setInterpolator(new DecelerateInterpolator(1.5f));
-        scrollAnim.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                isAnimatingTransition = false;
-                if (!dockApps.isEmpty()) {
-                    RecyclerView.ViewHolder h = dockRecycler.findViewHolderForAdapterPosition(finalTarget);
-                    if (h != null) {
-                        h.itemView.requestFocus();
-                    } else {
-                        dockRecycler.scrollToPosition(finalTarget);
-                        dockRecycler.post(() -> {
-                            RecyclerView.ViewHolder holder = dockRecycler.findViewHolderForAdapterPosition(finalTarget);
-                            if (holder != null) holder.itemView.requestFocus();
-                        });
-                    }
-                } else {
-                    if (btnSettings != null) btnSettings.requestFocus();
-                }
-            }
-        });
-        scrollAnim.start();
+        if (mainScrollView != null) {
+            mainScrollView.smoothScrollTo(0, 0);
+        }
     }
 
     private float getUiScale() {
@@ -640,15 +564,6 @@ public class MainActivity extends Activity {
                 vh.bgImage.setImageDrawable(gradient);
                 vh.iconImage.setImageDrawable(item.icon);
                 vh.iconImage.setVisibility(View.VISIBLE);
-            }
-
-            if (vh.root.isFocused()) {
-                if (isDock && heroTitle != null) {
-                    heroTitle.setAlpha(1f);
-                    heroTitle.setText(item.label);
-                } else if (!isDock) {
-                    vh.localLabel.setAlpha(1f);
-                }
             }
 
             vh.root.setOnLongClickListener(v -> {
