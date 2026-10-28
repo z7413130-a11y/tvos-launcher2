@@ -74,6 +74,19 @@ public class MainActivity extends Activity {
             this.banner = banner;
             this.dominantColor = dominantColor;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            AppItem appItem = (AppItem) o;
+            return packageName.equals(appItem.packageName);
+        }
+
+        @Override
+        public int hashCode() {
+            return packageName.hashCode();
+        }
     }
 
     @Override
@@ -144,17 +157,19 @@ public class MainActivity extends Activity {
         int columns = 6;
         int itemCellWidthPx = availableWidthPx / columns;
         
+        // Размеры для сетки всех приложений (возвращаем правильные пропорции!)
         int gridItemMarginPx = dpToPx((int)(8 * currentUiScale));
         int gridCardWidthPx = itemCellWidthPx - (gridItemMarginPx * 2);
         int gridCardHeightPx = (int) (gridCardWidthPx * (9f / 16f)); 
 
+        // Размеры для дока избранного
         float dockScaleMult = 1.15f;
         int dockCardWidthPx = (int) (gridCardWidthPx * dockScaleMult);
         int dockCardHeightPx = (int) (gridCardHeightPx * dockScaleMult);
         int dockItemMarginPx = dpToPx((int)(8 * currentUiScale));
 
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
-        gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, dockCardWidthPx, dockCardHeightPx, dockItemMarginPx));
+        gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, gridCardWidthPx, gridCardHeightPx, gridItemMarginPx));
         
         if (dockRecycler != null) {
             dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
@@ -261,7 +276,10 @@ public class MainActivity extends Activity {
                 }
             }
 
-            allApps.add(new AppItem(pkg, label, icon, banner, domColor));
+            AppItem app = new AppItem(pkg, label, icon, banner, domColor);
+            if (!allApps.contains(app)) {
+                allApps.add(app);
+            }
         }
 
         Collections.sort(allApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
@@ -270,31 +288,28 @@ public class MainActivity extends Activity {
         List<String> favList = new ArrayList<>();
         if (!favs.isEmpty()) {
             for (String p : favs.split(",")) {
-                if (!p.trim().isEmpty()) favList.add(p.trim());
+                if (!p.trim().isEmpty() && !favList.contains(p.trim())) {
+                    favList.add(p.trim());
+                }
             }
         }
 
         dockApps.clear();
         gridApps.clear();
 
+        // Заполняем док строго уникальными избранными
         for (String favPkg : favList) {
             for (AppItem app : allApps) {
-                if (app.packageName.equals(favPkg)) {
+                if (app.packageName.equals(favPkg) && !dockApps.contains(app)) {
                     dockApps.add(app);
                     break;
                 }
             }
         }
 
+        // Остальные строго в сетку без дублей
         for (AppItem app : allApps) {
-            boolean inFav = false;
-            for (AppItem f : dockApps) {
-                if (f.packageName.equals(app.packageName)) {
-                    inFav = true;
-                    break;
-                }
-            }
-            if (!inFav) {
+            if (!dockApps.contains(app) && !gridApps.contains(app)) {
                 gridApps.add(app);
             }
         }
@@ -476,10 +491,12 @@ public class MainActivity extends Activity {
                 }
             }
 
-            // ПЛАВНАЯ АНИМАЦИЯ ПЕРЕНОСА ИЗБРАННОГО БЕЗ ПРЫЖКОВ ЭКРАНА
+            // ПЛАВНАЯ АНИМАЦИЯ ПЕРЕНОСА МЕЖДУ СЕТКОЙ И ДОКОМ С УЧЕТОМ УНИКАЛЬНОСТИ
             vh.root.setOnLongClickListener(v -> {
                 if (!isDock) {
-                    // 1. Out-animation: Схлопывание иконки в сетке (нажатие -> scale down -> исчезновение)
+                    if (dockApps.contains(item)) return true; // Защита от дублей
+
+                    // Анимация схлопывания в сетке
                     AnimatorSet outAnim = new AnimatorSet();
                     ObjectAnimator pressX = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.15f, 0.9f, 0f);
                     ObjectAnimator pressY = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.15f, 0.9f, 0f);
@@ -491,7 +508,9 @@ public class MainActivity extends Activity {
                     outAnim.addListener(new AnimatorListenerAdapter() {
                         @Override
                         public void onAnimationEnd(Animator animation) {
-                            dockApps.add(item);
+                            if (!dockApps.contains(item)) {
+                                dockApps.add(item);
+                            }
                             gridApps.remove(item);
                             saveFavorites();
                             
@@ -504,24 +523,39 @@ public class MainActivity extends Activity {
                     outAnim.start();
 
                 } else {
-                    // Из дока в сетку
-                    dockApps.remove(item);
-                    gridApps.add(item);
-                    Collections.sort(gridApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
-                    saveFavorites();
+                    if (gridApps.contains(item)) return true; // Защита от дублей
+
+                    // Анимация схлопывания в доке перед возвратом в сетку
+                    AnimatorSet outAnim = new AnimatorSet();
+                    ObjectAnimator pressX = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.15f, 0.9f, 0f);
+                    ObjectAnimator pressY = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.15f, 0.9f, 0f);
+                    ObjectAnimator fade = ObjectAnimator.ofFloat(vh.card, "alpha", 1f, 0f);
+                    outAnim.playTogether(pressX, pressY, fade);
+                    outAnim.setDuration(280);
+                    outAnim.setInterpolator(new DecelerateInterpolator());
                     
-                    notifyItemRemoved(position);
-                    if (gridRecycler != null && gridRecycler.getAdapter() != null) {
-                        gridRecycler.getAdapter().notifyDataSetChanged();
-                    }
+                    outAnim.addListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            dockApps.remove(item);
+                            if (!gridApps.contains(item)) {
+                                gridApps.add(item);
+                            }
+                            Collections.sort(gridApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
+                            saveFavorites();
+                            
+                            notifyItemRemoved(position);
+                            if (gridRecycler != null && gridRecycler.getAdapter() != null) {
+                                gridRecycler.getAdapter().notifyDataSetChanged();
+                            }
+                        }
+                    });
+                    outAnim.start();
                 }
                 return true;
             });
 
             vh.root.setOnFocusChangeListener((v, hasFocus) -> {
-                ScrollView sv = findViewById(R.id.main_scroll_view);
-                View dockContainer = findViewById(R.id.dock_container);
-                
                 if (hasFocus) {
                     if (vh.scaleAnim != null) vh.scaleAnim.cancel();
                     vh.scaleAnim = new AnimatorSet();
