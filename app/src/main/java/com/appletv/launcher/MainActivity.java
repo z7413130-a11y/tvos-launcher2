@@ -23,6 +23,7 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
@@ -196,11 +197,6 @@ public class MainActivity extends Activity {
         
         if (gridDarkOverlay != null) {
             gridDarkOverlay.animate().alpha(1f).setDuration(300).start();
-        }
-
-        // Чистый системный скролл без кастомных аниматоров
-        if (mainScrollView != null && dockContainer != null) {
-            mainScrollView.smoothScrollTo(0, dockContainer.getTop() - dpToPx(24));
         }
     }
 
@@ -564,6 +560,45 @@ public class MainActivity extends Activity {
                 vh.bgImage.setImageDrawable(gradient);
                 vh.iconImage.setImageDrawable(item.icon);
                 vh.iconImage.setVisibility(View.VISIBLE);
+            }
+
+            // ПЕРЕХВАТ СТРЕЛКИ ВНИЗ В ДОКЕ: прыгаем сразу на нижний ряд сетки
+            vh.root.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    if (isDock && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                        if (!gridApps.isEmpty()) {
+                            int gridSize = gridApps.size();
+                            int columns = 6;
+                            // Находим индекс начала самого последнего ряда
+                            int lastRowStart = (gridSize - 1) - ((gridSize - 1) % columns);
+                            int targetCol = position % columns;
+                            int targetIndex = lastRowStart + targetCol;
+                            if (targetIndex >= gridSize) {
+                                targetIndex = gridSize - 1;
+                            }
+                            final int finalTarget = targetIndex;
+                            
+                            gridRecycler.scrollToPosition(finalTarget);
+                            gridRecycler.post(() -> {
+                                RecyclerView.ViewHolder holder = gridRecycler.findViewHolderForAdapterPosition(finalTarget);
+                                if (holder != null) {
+                                    holder.itemView.requestFocus();
+                                }
+                            });
+                            return true; // Блокируем стандартный переход на первый ряд
+                        }
+                    }
+                }
+                return false;
+            });
+
+            if (vh.root.isFocused()) {
+                if (isDock && heroTitle != null) {
+                    heroTitle.setAlpha(1f);
+                    heroTitle.setText(item.label);
+                } else if (!isDock) {
+                    vh.localLabel.setAlpha(1f);
+                }
             }
 
             vh.root.setOnLongClickListener(v -> {
