@@ -146,7 +146,7 @@ public class MainActivity extends Activity {
         int gridCardWidthPx = itemCellWidthPx - (gridItemMarginPx * 2);
         int gridCardHeightPx = (int) (gridCardWidthPx * (9f / 16f)); 
 
-        float dockScaleMult = 1.15f; // Чуть компактнее, чтобы карточки идеально сидели внутри дока без вылазиния
+        float dockScaleMult = 1.15f;
         int dockCardWidthPx = (int) (gridCardWidthPx * dockScaleMult);
         int dockCardHeightPx = (int) (gridCardHeightPx * dockScaleMult);
         int dockItemMarginPx = dpToPx((int)(10 * currentUiScale));
@@ -290,21 +290,21 @@ public class MainActivity extends Activity {
         FrameLayout card;
         ImageView bgImage;
         ImageView iconImage;
-        TextView starBadge;
+        TextView favBadge; // Минималистичный стеклянный значок избранного
         TextView localLabel;
         View glareOverlay;
-        View glowBorder; // Тонкая элегантная белая рамка при фокусе
+        View glowBorder;
         
         ObjectAnimator shimmerAnim;
         AnimatorSet scaleAnim;
 
-        public AppViewHolder(LinearLayout root, FrameLayout card, ImageView bgImage, ImageView iconImage, TextView starBadge, TextView localLabel, View glareOverlay, View glowBorder) {
+        public AppViewHolder(LinearLayout root, FrameLayout card, ImageView bgImage, ImageView iconImage, TextView favBadge, TextView localLabel, View glareOverlay, View glowBorder) {
             super(root);
             this.root = root;
             this.card = card;
             this.bgImage = bgImage;
             this.iconImage = iconImage;
-            this.starBadge = starBadge;
+            this.favBadge = favBadge;
             this.localLabel = localLabel;
             this.glareOverlay = glareOverlay;
             this.glowBorder = glowBorder;
@@ -319,6 +319,9 @@ public class MainActivity extends Activity {
             glareOverlay.setAlpha(0f);
             glowBorder.setAlpha(0f);
             localLabel.setAlpha(0f);
+            favBadge.setAlpha(0f);
+            favBadge.setScaleX(1f);
+            favBadge.setScaleY(1f);
         }
     }
 
@@ -382,7 +385,6 @@ public class MainActivity extends Activity {
             int iconSize = isDock ? dpToPx((int)(66 * currentUiScale)) : dpToPx((int)(56 * currentUiScale));
             card.addView(iconImage, new FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER));
 
-            // Мягкий белый бегающий блик
             View glareOverlay = new View(ctx);
             GradientDrawable glareGd = new GradientDrawable(
                 GradientDrawable.Orientation.BL_TR,
@@ -393,7 +395,6 @@ public class MainActivity extends Activity {
             glareOverlay.setAlpha(0f);
             card.addView(glareOverlay);
 
-            // Тонкая чистая белая обводка (свечение) строго при фокусе
             View glowBorder = new View(ctx);
             glowBorder.setAlpha(0f);
             glowBorder.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -401,19 +402,30 @@ public class MainActivity extends Activity {
             GradientDrawable borderDrawable = new GradientDrawable();
             borderDrawable.setShape(GradientDrawable.RECTANGLE);
             borderDrawable.setCornerRadius(dpToPx(12));
-            borderDrawable.setStroke(dpToPx(2), 0x99FFFFFF); // Полупрозрачная белая рамка без цветных ореолов
+            borderDrawable.setStroke(dpToPx(2), 0x99FFFFFF);
             borderDrawable.setColor(Color.TRANSPARENT);
             glowBorder.setBackground(borderDrawable);
-            
             card.addView(glowBorder);
 
-            TextView starBadge = new TextView(ctx);
-            starBadge.setText("⭐");
-            starBadge.setTextSize(12f * currentUiScale);
-            FrameLayout.LayoutParams starLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
-            starLp.setMargins(0, dpToPx((int)(4 * currentUiScale)), dpToPx((int)(6 * currentUiScale)), 0);
-            starBadge.setLayoutParams(starLp);
-            card.addView(starBadge);
+            // МИНИМАЛИСТИЧНЫЙ СТЕКЛЯННЫЙ ЗНАЧОК ИЗБРАННОГО (Белая точка / звездочка в стиле tvOS)
+            TextView favBadge = new TextView(ctx);
+            favBadge.setText("★");
+            favBadge.setTextSize(11f * currentUiScale);
+            favBadge.setTextColor(Color.WHITE);
+            favBadge.setGravity(Gravity.CENTER);
+            
+            GradientDrawable badgeBg = new GradientDrawable();
+            badgeBg.setShape(GradientDrawable.OVAL);
+            badgeBg.setColor(0x4D000000); // Полупрозрачная черная стеклянная капсула
+            badgeBg.setStroke(dpToPx(1), 0x66FFFFFF); // Тонкая белая окантовка
+            favBadge.setBackground(badgeBg);
+            
+            int badgeSize = dpToPx(24);
+            FrameLayout.LayoutParams badgeLp = new FrameLayout.LayoutParams(badgeSize, badgeSize, Gravity.TOP | Gravity.END);
+            badgeLp.setMargins(0, dpToPx(6), dpToPx(6), 0);
+            favBadge.setLayoutParams(badgeLp);
+            favBadge.setAlpha(0f);
+            card.addView(favBadge);
 
             root.addView(card);
 
@@ -438,7 +450,7 @@ public class MainActivity extends Activity {
             
             root.addView(localLabel);
 
-            return new AppViewHolder(root, card, bgImage, iconImage, starBadge, localLabel, glareOverlay, glowBorder);
+            return new AppViewHolder(root, card, bgImage, iconImage, favBadge, localLabel, glareOverlay, glowBorder);
         }
 
         @Override
@@ -474,10 +486,11 @@ public class MainActivity extends Activity {
                 }
             }
 
+            // Управляем отображением стеклянного значка избранного
             if (!isDock && isFav) {
-                vh.starBadge.setAlpha(1f); vh.starBadge.setScaleX(1f); vh.starBadge.setScaleY(1f);
+                vh.favBadge.setAlpha(1f);
             } else {
-                vh.starBadge.setAlpha(0f); vh.starBadge.setScaleX(0f); vh.starBadge.setScaleY(0f);
+                vh.favBadge.setAlpha(0f);
             }
 
             if (vh.root.isFocused()) {
@@ -496,18 +509,26 @@ public class MainActivity extends Activity {
                         if (a.packageName.equals(item.packageName)) { favItem = a; break; }
                     }
                     if (favItem == null) {
+                        // Добавляем в избранное
                         dockApps.add(item);
                         saveFavorites();
-                        vh.starBadge.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(300).setInterpolator(new OvershootInterpolator()).start();
+                        // Эффектное появление стеклянного значка
+                        vh.favBadge.setAlpha(0f);
+                        vh.favBadge.setScaleX(0.5f);
+                        vh.favBadge.setScaleY(0.5f);
+                        vh.favBadge.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(250).setInterpolator(new OvershootInterpolator()).start();
+                        
                         if (dockRecycler != null && dockRecycler.getAdapter() != null) {
                             dockRecycler.getAdapter().notifyItemInserted(dockApps.size() - 1);
                             dockRecycler.smoothScrollToPosition(dockApps.size() - 1);
                         }
                     } else {
+                        // Убираем из избранного — плавно гасим значок и удаляем
                         int pos = dockApps.indexOf(favItem);
                         if (pos >= 0) {
                             dockApps.remove(pos);
                             saveFavorites();
+                            vh.favBadge.animate().alpha(0f).scaleX(0.5f).scaleY(0.5f).setDuration(200).withEndAction(() -> notifyItemChanged(position)).start();
                             if (dockRecycler != null && dockRecycler.getAdapter() != null) {
                                 dockRecycler.getAdapter().notifyItemRemoved(pos);
                             }
@@ -544,7 +565,6 @@ public class MainActivity extends Activity {
 
                     animateAmbientGlow(item.dominantColor);
                     
-                    // Включаем белую рамку и блик строго для выбранной карточки
                     vh.glowBorder.animate().alpha(1f).setDuration(200).start();
                     vh.glareOverlay.animate().alpha(1f).setDuration(300).start();
                     if (vh.shimmerAnim == null) {
