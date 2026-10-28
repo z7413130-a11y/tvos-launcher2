@@ -17,7 +17,6 @@
         android:layout_height="match_parent"
         android:background="@drawable/hero_gradient_overlay" />
 
-    <!-- Слой затемнения фона, который плавно появляется при вызове сетки (как в tvOS) -->
     <View
         android:id="@+id/grid_dark_overlay"
         android:layout_width="match_parent"
@@ -118,7 +117,9 @@
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed" />
 
+        <!-- Добавлен ID для плашки времени и настроек -->
         <LinearLayout
+            android:id="@+id/time_pill_container"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
             android:layout_alignParentEnd="true"

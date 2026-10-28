@@ -49,6 +49,7 @@ public class MainActivity extends Activity {
 
     private TextView heroTitle;
     private View topStatusContainer;
+    private View timePillContainer;
     private ScrollView mainScrollView;
     private View dockContainer;
     private View ambientGlowBg;
@@ -110,6 +111,7 @@ public class MainActivity extends Activity {
 
         heroTitle = findViewById(R.id.hero_title);
         topStatusContainer = findViewById(R.id.top_status_container);
+        timePillContainer = findViewById(R.id.time_pill_container);
         mainScrollView = findViewById(R.id.main_scroll_view);
         dockContainer = findViewById(R.id.dock_container);
         ambientGlowBg = findViewById(R.id.ambient_glow_bg);
@@ -192,11 +194,15 @@ public class MainActivity extends Activity {
         isGridViewOpen = true;
 
         if (topStatusContainer != null) {
-            topStatusContainer.animate().alpha(0f).translationY(-dpToPx(40)).setDuration(300).setInterpolator(new DecelerateInterpolator()).start();
+            topStatusContainer.animate().translationY(-dpToPx(40)).setDuration(300).setInterpolator(new DecelerateInterpolator()).start();
         }
         
         if (gridDarkOverlay != null) {
             gridDarkOverlay.animate().alpha(1f).setDuration(300).start();
+        }
+
+        if (mainScrollView != null && dockContainer != null) {
+            mainScrollView.smoothScrollTo(0, dockContainer.getTop() - dpToPx(24));
         }
     }
 
@@ -204,7 +210,7 @@ public class MainActivity extends Activity {
         isGridViewOpen = false;
 
         if (topStatusContainer != null) {
-            topStatusContainer.animate().alpha(1f).translationY(0).setDuration(300).setInterpolator(new DecelerateInterpolator()).start();
+            topStatusContainer.animate().translationY(0).setDuration(300).setInterpolator(new DecelerateInterpolator()).start();
         }
         
         if (gridDarkOverlay != null) {
@@ -562,21 +568,19 @@ public class MainActivity extends Activity {
                 vh.iconImage.setVisibility(View.VISIBLE);
             }
 
-            // ПЕРЕХВАТ СТРЕЛКИ ВНИЗ В ДОКЕ: прыгаем сразу на нижний ряд сетки
+            // ПРЫЖОК НА ВТОРУЮ СТРОКУ СЕТКИ ПРИ НАЖАТИИ ВНИЗ ИЗ ДОКА
             vh.root.setOnKeyListener((v, keyCode, event) -> {
                 if (event.getAction() == KeyEvent.ACTION_DOWN) {
                     if (isDock && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
                         if (!gridApps.isEmpty()) {
-                            int gridSize = gridApps.size();
                             int columns = 6;
-                            // Находим индекс начала самого последнего ряда
-                            int lastRowStart = (gridSize - 1) - ((gridSize - 1) % columns);
                             int targetCol = position % columns;
-                            int targetIndex = lastRowStart + targetCol;
-                            if (targetIndex >= gridSize) {
-                                targetIndex = gridSize - 1;
+                            // Индекс второй строчки (6-11)
+                            int targetIndex = columns + targetCol;
+                            if (targetIndex >= gridApps.size()) {
+                                targetIndex = gridApps.size() - 1;
                             }
-                            final int finalTarget = targetIndex;
+                            final int finalTarget = Math.max(0, targetIndex);
                             
                             gridRecycler.scrollToPosition(finalTarget);
                             gridRecycler.post(() -> {
@@ -585,22 +589,75 @@ public class MainActivity extends Activity {
                                     holder.itemView.requestFocus();
                                 }
                             });
-                            return true; // Блокируем стандартный переход на первый ряд
+                            return true;
                         }
                     }
                 }
                 return false;
             });
 
-            if (vh.root.isFocused()) {
-                if (isDock && heroTitle != null) {
-                    heroTitle.setAlpha(1f);
-                    heroTitle.setText(item.label);
-                } else if (!isDock) {
-                    vh.localLabel.setAlpha(1f);
-                }
-            }
+            vh.root.setOnFocusChangeListener((v, hasFocus) -> {
+                if (hasFocus) {
+                    if (vh.scaleAnim != null) vh.scaleAnim.cancel();
+                    vh.scaleAnim = new AnimatorSet();
+                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.12f);
+                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.12f);
+                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(30 * currentUiScale)));
+                    vh.scaleAnim.playTogether(sx, sy, sz);
+                    vh.scaleAnim.setDuration(350);
+                    vh.scaleAnim.setInterpolator(new OvershootInterpolator(1.1f));
+                    vh.scaleAnim.start();
 
+                    animateAmbientGlow(item.dominantColor);
+                    
+                    vh.glareOverlay.animate().alpha(1f).setDuration(300).start();
+                    if (vh.shimmerAnim == null) {
+                        vh.glareOverlay.setTranslationX(-cardWidth * 1.2f);
+                        vh.shimmerAnim = ObjectAnimator.ofFloat(vh.glareOverlay, "translationX", -cardWidth * 1.2f, cardWidth * 2.0f);
+                        vh.shimmerAnim.setDuration(4200);
+                        vh.shimmerAnim.setRepeatCount(ValueAnimator.INFINITE);
+                    }
+                    vh.shimmerAnim.start();
+
+                    // Обрабатываем прозрачность времени и заголовка при фокусе
+                    if (isDock) {
+                        if (heroTitle != null) {
+                            heroTitle.animate().alpha(1f).setDuration(200).start();
+                            heroTitle.setText(item.label);
+                        }
+                        if (timePillContainer != null) {
+                            timePillContainer.animate().alpha(1f).setDuration(200).start();
+                        }
+                    } else {
+                        if (heroTitle != null) {
+                            heroTitle.animate().alpha(0f).setDuration(200).start();
+                        }
+                        if (timePillContainer != null) {
+                            timePillContainer.animate().alpha(0f).setDuration(200).start();
+                        }
+                        vh.localLabel.animate().alpha(1f).setDuration(200).start();
+                    }
+                } else {
+                    if (vh.scaleAnim != null) vh.scaleAnim.cancel();
+                    vh.scaleAnim = new AnimatorSet();
+                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.0f);
+                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.0f);
+                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(4 * currentUiScale)));
+                    vh.scaleAnim.playTogether(sx, sy, sz);
+                    vh.scaleAnim.setDuration(250);
+                    vh.scaleAnim.setInterpolator(new DecelerateInterpolator(1.5f));
+                    vh.scaleAnim.start();
+
+                    if (vh.shimmerAnim != null) vh.shimmerAnim.cancel();
+                    vh.glareOverlay.animate().alpha(0f).setDuration(200).start();
+                    
+                    if (!isDock) {
+                        vh.localLabel.animate().alpha(0f).setDuration(200).start();
+                    }
+                }
+            });
+
+            // Длинное нажатие для перемещения в/из Избранного
             vh.root.setOnLongClickListener(v -> {
                 if (!isDock) {
                     if (dockApps.contains(item)) return true;
@@ -664,60 +721,6 @@ public class MainActivity extends Activity {
                     outAnim.start();
                 }
                 return true;
-            });
-
-            vh.root.setOnFocusChangeListener((v, hasFocus) -> {
-                if (hasFocus) {
-                    if (vh.scaleAnim != null) vh.scaleAnim.cancel();
-                    vh.scaleAnim = new AnimatorSet();
-                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.12f);
-                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.12f);
-                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(30 * currentUiScale)));
-                    vh.scaleAnim.playTogether(sx, sy, sz);
-                    vh.scaleAnim.setDuration(350);
-                    vh.scaleAnim.setInterpolator(new OvershootInterpolator(1.1f));
-                    vh.scaleAnim.start();
-
-                    animateAmbientGlow(item.dominantColor);
-                    
-                    vh.glareOverlay.animate().alpha(1f).setDuration(300).start();
-                    if (vh.shimmerAnim == null) {
-                        vh.glareOverlay.setTranslationX(-cardWidth * 1.2f);
-                        vh.shimmerAnim = ObjectAnimator.ofFloat(vh.glareOverlay, "translationX", -cardWidth * 1.2f, cardWidth * 2.0f);
-                        vh.shimmerAnim.setDuration(4200);
-                        vh.shimmerAnim.setRepeatCount(ValueAnimator.INFINITE);
-                    }
-                    vh.shimmerAnim.start();
-
-                    if (isDock) {
-                        if (heroTitle != null) {
-                            heroTitle.animate().alpha(1f).setDuration(200).start();
-                            heroTitle.setText(item.label);
-                        }
-                    } else {
-                        if (heroTitle != null) {
-                            heroTitle.animate().alpha(0f).setDuration(200).start();
-                        }
-                        vh.localLabel.animate().alpha(1f).setDuration(200).start();
-                    }
-                } else {
-                    if (vh.scaleAnim != null) vh.scaleAnim.cancel();
-                    vh.scaleAnim = new AnimatorSet();
-                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.0f);
-                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.0f);
-                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(4 * currentUiScale)));
-                    vh.scaleAnim.playTogether(sx, sy, sz);
-                    vh.scaleAnim.setDuration(250);
-                    vh.scaleAnim.setInterpolator(new DecelerateInterpolator(1.5f));
-                    vh.scaleAnim.start();
-
-                    if (vh.shimmerAnim != null) vh.shimmerAnim.cancel();
-                    vh.glareOverlay.animate().alpha(0f).setDuration(200).start();
-                    
-                    if (!isDock) {
-                        vh.localLabel.animate().alpha(0f).setDuration(200).start();
-                    }
-                }
             });
 
             vh.root.setOnClickListener(v -> {
