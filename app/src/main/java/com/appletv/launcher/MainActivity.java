@@ -18,6 +18,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
@@ -142,12 +143,10 @@ public class MainActivity extends Activity {
         int columns = 6;
         int itemCellWidthPx = availableWidthPx / columns;
         
-        // Размеры карточек для основной сетки
         int gridItemMarginPx = dpToPx((int)(8 * currentUiScale));
         int gridCardWidthPx = itemCellWidthPx - (gridItemMarginPx * 2);
         int gridCardHeightPx = (int) (gridCardWidthPx * (9f / 16f)); 
 
-        // Размеры карточек для Избранного (Dock) увеличены на 18% для премиальной массивности
         float dockScaleMult = 1.18f;
         int dockCardWidthPx = (int) (gridCardWidthPx * dockScaleMult);
         int dockCardHeightPx = (int) (gridCardHeightPx * dockScaleMult);
@@ -158,7 +157,6 @@ public class MainActivity extends Activity {
         
         if (dockRecycler != null) {
             dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-            // Передаем увеличенные размеры
             dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true, dockCardWidthPx, dockCardHeightPx, dockItemMarginPx));
         }
     }
@@ -278,7 +276,7 @@ public class MainActivity extends Activity {
     private void animateAmbientGlow(int targetColor) {
         if (ambientGlowBg == null) return;
         ValueAnimator colorAnim = ValueAnimator.ofObject(new ArgbEvaluator(), currentGlowColor, targetColor);
-        colorAnim.setDuration(280);
+        colorAnim.setDuration(400); // Сделали перетекание фона еще мягче
         colorAnim.addUpdateListener(animator -> {
             int c = (int) animator.getAnimatedValue();
             currentGlowColor = c;
@@ -288,7 +286,32 @@ public class MainActivity extends Activity {
         colorAnim.start();
     }
 
-    private class TvosAppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+    // Внедряем строгий паттерн ViewHolder для контроля комплексных анимаций без утечек и лагов
+    class AppViewHolder extends RecyclerView.ViewHolder {
+        LinearLayout root;
+        FrameLayout card;
+        ImageView bgImage;
+        ImageView iconImage;
+        TextView starBadge;
+        TextView localLabel;
+        View glareOverlay;
+        
+        ObjectAnimator shimmerAnim;
+        AnimatorSet scaleAnim;
+
+        public AppViewHolder(LinearLayout root, FrameLayout card, ImageView bgImage, ImageView iconImage, TextView starBadge, TextView localLabel, View glareOverlay) {
+            super(root);
+            this.root = root;
+            this.card = card;
+            this.bgImage = bgImage;
+            this.iconImage = iconImage;
+            this.starBadge = starBadge;
+            this.localLabel = localLabel;
+            this.glareOverlay = glareOverlay;
+        }
+    }
+
+    private class TvosAppAdapter extends RecyclerView.Adapter<AppViewHolder> {
         private final List<AppItem> items;
         private final boolean isDock;
         
@@ -306,7 +329,7 @@ public class MainActivity extends Activity {
 
         @NonNull
         @Override
-        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        public AppViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             Context ctx = parent.getContext();
             
             LinearLayout root = new LinearLayout(ctx);
@@ -325,7 +348,6 @@ public class MainActivity extends Activity {
             root.setLayoutParams(rootLp);
             
             FrameLayout card = new FrameLayout(ctx);
-            card.setTag("main_card");
             card.setFocusable(false);
             card.setClickable(false);
             card.setElevation(dpToPx((int)(4 * currentUiScale)));
@@ -342,15 +364,24 @@ public class MainActivity extends Activity {
 
             ImageView bgImage = new ImageView(ctx);
             bgImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            bgImage.setTag("bg_image");
             card.addView(bgImage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
             ImageView iconImage = new ImageView(ctx);
             iconImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            iconImage.setTag("icon_image");
-            // Иконка масштабируется пропорционально размеру карточки
             int iconSize = isDock ? dpToPx((int)(66 * currentUiScale)) : dpToPx((int)(56 * currentUiScale));
             card.addView(iconImage, new FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER));
+
+            // ЭФФЕКТ ПЕРЕЛИВАЮЩЕГОСЯ БЛИКА (Glare Overlay)
+            View glareOverlay = new View(ctx);
+            GradientDrawable glareGd = new GradientDrawable(
+                GradientDrawable.Orientation.BL_TR,
+                new int[]{0x00FFFFFF, 0x00FFFFFF, 0x33FFFFFF, 0x77FFFFFF, 0x33FFFFFF, 0x00FFFFFF, 0x00FFFFFF}
+            );
+            glareOverlay.setBackground(glareGd);
+            // Блик шире карточки, чтобы движение было плавным и покрывало углы
+            glareOverlay.setLayoutParams(new FrameLayout.LayoutParams((int)(cardWidth * 1.8f), ViewGroup.LayoutParams.MATCH_PARENT));
+            glareOverlay.setAlpha(0f);
+            card.addView(glareOverlay);
 
             TextView starBadge = new TextView(ctx);
             starBadge.setText("⭐");
@@ -358,13 +389,11 @@ public class MainActivity extends Activity {
             FrameLayout.LayoutParams starLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.END);
             starLp.setMargins(0, dpToPx((int)(4 * currentUiScale)), dpToPx((int)(6 * currentUiScale)), 0);
             starBadge.setLayoutParams(starLp);
-            starBadge.setTag("fav_star");
             card.addView(starBadge);
 
             root.addView(card);
 
             TextView localLabel = new TextView(ctx);
-            localLabel.setTag("local_label");
             localLabel.setTextSize(13f * currentUiScale);
             localLabel.setTextColor(Color.WHITE);
             localLabel.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
@@ -385,32 +414,31 @@ public class MainActivity extends Activity {
             
             root.addView(localLabel);
 
-            return new RecyclerView.ViewHolder(root) {};
+            return new AppViewHolder(root, card, bgImage, iconImage, starBadge, localLabel, glareOverlay);
         }
 
         @Override
-        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        public void onBindViewHolder(@NonNull AppViewHolder vh, int position) {
             AppItem item = items.get(position);
-            LinearLayout root = (LinearLayout) holder.itemView;
-            
-            FrameLayout card = (FrameLayout) root.findViewWithTag("main_card");
-            ImageView bgImage = (ImageView) card.findViewWithTag("bg_image");
-            ImageView iconImage = (ImageView) card.findViewWithTag("icon_image");
-            TextView starBadge = (TextView) card.findViewWithTag("fav_star");
-            TextView localLabel = (TextView) root.findViewWithTag("local_label");
 
-            localLabel.setText(item.label);
+            vh.localLabel.setText(item.label);
 
             if (item.banner != null) {
-                bgImage.setImageDrawable(item.banner);
-                iconImage.setVisibility(View.GONE);
+                vh.bgImage.setImageDrawable(item.banner);
+                vh.iconImage.setVisibility(View.GONE);
             } else {
                 int baseColor = item.dominantColor;
                 int darkColor = Color.rgb((int)(Color.red(baseColor) * 0.25f), (int)(Color.green(baseColor) * 0.25f), (int)(Color.blue(baseColor) * 0.25f));
                 GradientDrawable gradient = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{baseColor, darkColor});
-                bgImage.setImageDrawable(gradient);
-                iconImage.setImageDrawable(item.icon);
-                iconImage.setVisibility(View.VISIBLE);
+                vh.bgImage.setImageDrawable(gradient);
+                vh.iconImage.setImageDrawable(item.icon);
+                vh.iconImage.setVisibility(View.VISIBLE);
+            }
+
+            // Нативный цветной градиентный свет из-под карточки (Если Android 9+)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                vh.card.setOutlineSpotShadowColor(item.dominantColor);
+                vh.card.setOutlineAmbientShadowColor(item.dominantColor);
             }
 
             boolean isFav = false;
@@ -422,23 +450,23 @@ public class MainActivity extends Activity {
             }
 
             if (!isDock && isFav) {
-                starBadge.setAlpha(1f); starBadge.setScaleX(1f); starBadge.setScaleY(1f);
+                vh.starBadge.setAlpha(1f); vh.starBadge.setScaleX(1f); vh.starBadge.setScaleY(1f);
             } else {
-                starBadge.setAlpha(0f); starBadge.setScaleX(0f); starBadge.setScaleY(0f);
+                vh.starBadge.setAlpha(0f); vh.starBadge.setScaleX(0f); vh.starBadge.setScaleY(0f);
             }
 
-            if (root.isFocused()) {
+            if (vh.root.isFocused()) {
                 if (isDock && heroTitle != null) {
                     heroTitle.setAlpha(1f);
                     heroTitle.setText(item.label);
                 } else if (!isDock) {
-                    localLabel.setAlpha(1f);
+                    vh.localLabel.setAlpha(1f);
                 }
             } else {
-                if (!isDock) localLabel.setAlpha(0f);
+                if (!isDock) vh.localLabel.setAlpha(0f);
             }
 
-            root.setOnLongClickListener(v -> {
+            vh.root.setOnLongClickListener(v -> {
                 if (!isDock) {
                     AppItem favItem = null;
                     for (AppItem a : dockApps) {
@@ -447,7 +475,7 @@ public class MainActivity extends Activity {
                     if (favItem == null) {
                         dockApps.add(item);
                         saveFavorites();
-                        starBadge.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(300).setInterpolator(new OvershootInterpolator()).start();
+                        vh.starBadge.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(300).setInterpolator(new OvershootInterpolator()).start();
                         if (dockRecycler != null && dockRecycler.getAdapter() != null) {
                             dockRecycler.getAdapter().notifyItemInserted(dockApps.size() - 1);
                             dockRecycler.smoothScrollToPosition(dockApps.size() - 1);
@@ -457,7 +485,7 @@ public class MainActivity extends Activity {
                         if (pos >= 0) {
                             dockApps.remove(pos);
                             saveFavorites();
-                            starBadge.animate().alpha(0f).scaleX(0f).scaleY(0f).setDuration(200).start();
+                            vh.starBadge.animate().alpha(0f).scaleX(0f).scaleY(0f).setDuration(200).start();
                             if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyItemRemoved(pos);
                         }
                     }
@@ -473,18 +501,38 @@ public class MainActivity extends Activity {
                 return true;
             });
 
-            root.setOnFocusChangeListener((v, hasFocus) -> {
+            vh.root.setOnFocusChangeListener((v, hasFocus) -> {
                 Context ctx = v.getContext();
                 ScrollView sv = ((Activity) ctx).findViewById(R.id.main_scroll_view);
                 View dockContainer = ((Activity) ctx).findViewById(R.id.dock_container);
                 
                 if (hasFocus) {
-                    animateScale(card, 1.10f, 1.10f, dpToPx((int)(30 * currentUiScale)));
+                    // 1. SPRING-АНИМАЦИЯ МАСШТАБА И ГЛУБОКАЯ ТЕНЬ (1.12x)
+                    if (vh.scaleAnim != null) vh.scaleAnim.cancel();
+                    vh.scaleAnim = new AnimatorSet();
+                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.12f);
+                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.12f);
+                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(30 * currentUiScale)));
+                    vh.scaleAnim.playTogether(sx, sy, sz);
+                    vh.scaleAnim.setDuration(350);
+                    vh.scaleAnim.setInterpolator(new OvershootInterpolator(1.1f)); // Мягкий эластичный отскок Apple TV
+                    vh.scaleAnim.start();
+
                     animateAmbientGlow(item.dominantColor);
                     
+                    // 2. ЗАПУСК КИНЕМАТОГРАФИЧНОГО БЛИКА ПО ПОВЕРХНОСТИ
+                    vh.glareOverlay.setAlpha(1f);
+                    if (vh.shimmerAnim == null) {
+                        vh.glareOverlay.setTranslationX(-cardWidth);
+                        vh.shimmerAnim = ObjectAnimator.ofFloat(vh.glareOverlay, "translationX", -cardWidth, cardWidth * 1.5f);
+                        vh.shimmerAnim.setDuration(2800); // Медленное и плавное прохождение света
+                        vh.shimmerAnim.setRepeatCount(ValueAnimator.INFINITE);
+                    }
+                    vh.shimmerAnim.start();
+
+                    // Тексты и авто-скролл
                     if (isDock) {
                         if (sv != null) sv.smoothScrollTo(0, 0);
-                        
                         if (heroTitle != null) {
                             heroTitle.animate().alpha(1f).setDuration(200).start();
                             heroTitle.setText(item.label);
@@ -496,22 +544,34 @@ public class MainActivity extends Activity {
                                 sv.smoothScrollTo(0, targetY);
                             }
                         }
-                        
                         if (heroTitle != null) {
                             heroTitle.animate().alpha(0f).setDuration(200).start();
                         }
-                        localLabel.animate().alpha(1f).setDuration(200).start();
+                        vh.localLabel.animate().alpha(1f).setDuration(200).start();
                     }
                 } else {
-                    animateScale(card, 1.0f, 1.0f, 0f);
+                    // 1. МЯГКИЙ ВОЗВРАТ КАРТОЧКИ В ИСХОДНОЕ СОСТОЯНИЕ
+                    if (vh.scaleAnim != null) vh.scaleAnim.cancel();
+                    vh.scaleAnim = new AnimatorSet();
+                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.0f);
+                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.0f);
+                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(4 * currentUiScale)));
+                    vh.scaleAnim.playTogether(sx, sy, sz);
+                    vh.scaleAnim.setDuration(250);
+                    vh.scaleAnim.setInterpolator(new DecelerateInterpolator(1.5f)); // Плавно тормозит в конце
+                    vh.scaleAnim.start();
+
+                    // 2. ОТКЛЮЧЕНИЕ СВЕТОВОГО БЛИКА
+                    if (vh.shimmerAnim != null) vh.shimmerAnim.cancel();
+                    vh.glareOverlay.animate().alpha(0f).setDuration(200).start();
                     
                     if (!isDock) {
-                        localLabel.animate().alpha(0f).setDuration(200).start();
+                        vh.localLabel.animate().alpha(0f).setDuration(200).start();
                     }
                 }
             });
 
-            root.setOnClickListener(v -> {
+            vh.root.setOnClickListener(v -> {
                 PackageManager pm = getPackageManager();
                 Intent launch = pm.getLeanbackLaunchIntentForPackage(item.packageName);
                 if (launch == null) launch = pm.getLaunchIntentForPackage(item.packageName);
@@ -523,16 +583,5 @@ public class MainActivity extends Activity {
         public int getItemCount() {
             return items.size();
         }
-    }
-
-    private void animateScale(View view, float sx, float sy, float elev) {
-        ObjectAnimator ax = ObjectAnimator.ofFloat(view, "scaleX", sx);
-        ObjectAnimator ay = ObjectAnimator.ofFloat(view, "scaleY", sy);
-        ObjectAnimator az = ObjectAnimator.ofFloat(view, "translationZ", elev);
-        AnimatorSet set = new AnimatorSet();
-        set.playTogether(ax, ay, az);
-        set.setDuration(180);
-        set.setInterpolator(new DecelerateInterpolator());
-        set.start();
     }
 }
