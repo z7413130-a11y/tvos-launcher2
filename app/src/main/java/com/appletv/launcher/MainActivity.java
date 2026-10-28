@@ -129,7 +129,6 @@ public class MainActivity extends Activity {
         return prefs.getFloat("ui_scale", 1.0f);
     }
 
-    // Здесь рассчитывается математика идеального заполнения экрана
     private void setupDynamicGrid() {
         if (gridRecycler == null) return;
         
@@ -137,24 +136,32 @@ public class MainActivity extends Activity {
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         int screenWidth = metrics.widthPixels;
         
-        // Отступы контейнеров по краям экрана (по 48dp слева и справа = 96dp)
         int screenMarginsPx = dpToPx((int)(96 * currentUiScale));
         int availableWidthPx = screenWidth - screenMarginsPx;
         
-        // Как на фото Apple TV: строго 6 колонок
         int columns = 6;
         int itemCellWidthPx = availableWidthPx / columns;
         
-        // Внутренний отступ между карточками (по 8dp с каждой стороны)
         int itemMarginPx = dpToPx((int)(8 * currentUiScale));
-        
-        // Чистый размер самой карточки (чтобы 6 штук идеально заполнили ширину)
         int cardWidthPx = itemCellWidthPx - (itemMarginPx * 2);
-        int cardHeightPx = (int) (cardWidthPx * (9f / 16f)); // Строго 16:9
+        int cardHeightPx = (int) (cardWidthPx * (9f / 16f)); 
+
+        // === ИСПРАВЛЕНИЕ ОБРЕЗКИ ИКОНОК ===
+        // Математически вычисляем ИДЕАЛЬНУЮ высоту дока и жестко фиксируем её
+        FrameLayout dockContainer = findViewById(R.id.dock_container);
+        if (dockContainer != null) {
+            int dockPaddingY = dpToPx((int)(20 * currentUiScale)); // 10dp padding сверху и снизу (в сумме 20)
+            int totalDockHeight = cardHeightPx + (itemMarginPx * 2) + dockPaddingY;
+            
+            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) dockContainer.getLayoutParams();
+            params.height = totalDockHeight;
+            dockContainer.setLayoutParams(params);
+            
+            // Принудительно заставляем маску обновиться под этот новый размер
+            dockContainer.invalidateOutline();
+        }
 
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
-        
-        // Передаем размеры напрямую в адаптер
         gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, cardWidthPx, cardHeightPx, itemMarginPx));
         
         if (dockRecycler != null) {
@@ -292,7 +299,6 @@ public class MainActivity extends Activity {
         private final List<AppItem> items;
         private final boolean isDock;
         
-        // Получаем точные вычисленные размеры
         private final int cardWidth;
         private final int cardHeight;
         private final int itemMargin;
@@ -312,7 +318,7 @@ public class MainActivity extends Activity {
             
             LinearLayout root = new LinearLayout(ctx);
             root.setOrientation(LinearLayout.VERTICAL);
-            root.setGravity(Gravity.CENTER_HORIZONTAL);
+            root.setGravity(Gravity.CENTER);
             root.setFocusable(true);
             root.setClickable(true);
             root.setClipChildren(false); 
@@ -322,7 +328,6 @@ public class MainActivity extends Activity {
                 ViewGroup.LayoutParams.WRAP_CONTENT, 
                 ViewGroup.LayoutParams.WRAP_CONTENT
             );
-            // Применяем отступы
             rootLp.setMargins(itemMargin, itemMargin, itemMargin, itemMargin);
             root.setLayoutParams(rootLp);
             
@@ -332,7 +337,6 @@ public class MainActivity extends Activity {
             card.setClickable(false);
             card.setElevation(dpToPx((int)(4 * currentUiScale)));
             
-            // Применяем динамическую ширину и высоту
             card.setLayoutParams(new LinearLayout.LayoutParams(cardWidth, cardHeight));
             
             card.setOutlineProvider(new ViewOutlineProvider() {
@@ -484,7 +488,6 @@ public class MainActivity extends Activity {
                     animateAmbientGlow(item.dominantColor);
                     
                     if (isDock) {
-                        // Если фокус вернулся наверх - плавно скроллим экран в самый верх к заголовку
                         if (sv != null) sv.smoothScrollTo(0, 0);
                         
                         if (heroTitle != null) {
@@ -492,8 +495,6 @@ public class MainActivity extends Activity {
                             heroTitle.setText(item.label);
                         }
                     } else {
-                        // АВТО-ОПУСКАНИЕ (Snap to Top): 
-                        // Если перешли в сетку, и экран находится высоко, плавно прокручиваем его так, чтобы док был сверху
                         if (sv != null && dockContainer != null) {
                             int targetY = dockContainer.getTop() - dpToPx((int)(24 * currentUiScale));
                             if (sv.getScrollY() < targetY - dpToPx(30)) {
