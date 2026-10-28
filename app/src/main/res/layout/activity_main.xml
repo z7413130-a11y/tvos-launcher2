@@ -10,7 +10,7 @@
         android:id="@+id/ambient_glow_bg"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:alpha="0.35" />
+        android:alpha="0.45" />
 
     <View
         android:layout_width="match_parent"
@@ -43,14 +43,13 @@
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
-                <!-- Возвращаем clipToOutline для идеальной формы Apple TV, но делаем симметричные отступы 22dp -->
                 <FrameLayout
                     android:id="@+id/dock_container"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:minHeight="140dp"
+                    android:minHeight="110dp"
                     android:layout_marginHorizontal="48dp"
-                    android:paddingVertical="22dp"
+                    android:paddingVertical="10dp"
                     android:paddingHorizontal="16dp"
                     android:background="@drawable/glass_dock_bg"
                     android:clipToOutline="true"

@@ -97,7 +97,7 @@ public class MainActivity extends Activity {
             dockContainer.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(36));
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(28));
                 }
             });
             dockContainer.setClipToOutline(true);
@@ -149,10 +149,10 @@ public class MainActivity extends Activity {
         float dockScaleMult = 1.15f;
         int dockCardWidthPx = (int) (gridCardWidthPx * dockScaleMult);
         int dockCardHeightPx = (int) (gridCardHeightPx * dockScaleMult);
-        int dockItemMarginPx = dpToPx((int)(10 * currentUiScale));
+        int dockItemMarginPx = dpToPx((int)(8 * currentUiScale));
 
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
-        gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, gridCardWidthPx, gridCardHeightPx, gridItemMarginPx));
+        gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, gridCardWidthPx, gridCardHeightPx, dockItemMarginPx));
         
         if (dockRecycler != null) {
             dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
@@ -190,7 +190,7 @@ public class MainActivity extends Activity {
                 for (int x = 1; x < 7; x++) {
                     for (int y = 1; y < 7; y++) {
                         int pixel = small.getPixel(x, y);
-                        if (Color.alpha(pixel) > 50) {
+                        if (Color.alpha(pixel) > 40) {
                             r += Color.red(pixel);
                             g += Color.green(pixel);
                             b += Color.blue(pixel);
@@ -198,10 +198,20 @@ public class MainActivity extends Activity {
                         }
                     }
                 }
-                if (count > 0) return Color.rgb((int)(r / count), (int)(g / count), (int)(b / count));
+                if (count > 0) {
+                    int avR = (int)(r / count);
+                    int avG = (int)(g / count);
+                    int avB = (int)(b / count);
+                    
+                    float[] hsv = new float[3];
+                    Color.RGBToHSV(avR, avG, avB, hsv);
+                    hsv[1] = Math.min(1.0f, hsv[1] * 1.35f);
+                    hsv[2] = Math.max(0.45f, hsv[2] * 1.25f);
+                    return Color.HSVToColor(hsv);
+                }
             }
         } catch (Exception ignored) {}
-        return 0xFF2C2C2E;
+        return 0xFF3A3A42;
     }
 
     private void loadInstalledApps() {
@@ -253,21 +263,37 @@ public class MainActivity extends Activity {
         }
 
         Collections.sort(allApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
-        gridApps.clear();
-        gridApps.addAll(allApps);
+        
+        String favs = prefs.getString("favorites", "");
+        List<String> favList = new ArrayList<>();
+        if (!favs.isEmpty()) {
+            for (String p : favs.split(",")) {
+                if (!p.trim().isEmpty()) favList.add(p.trim());
+            }
+        }
 
         dockApps.clear();
-        String favs = prefs.getString("favorites", "");
-        if (!favs.isEmpty()) {
-            String[] favArray = favs.split(",");
-            for (String pkg : favArray) {
-                if (pkg.trim().isEmpty()) continue;
-                for (AppItem app : allApps) {
-                    if (app.packageName.equals(pkg)) {
-                        dockApps.add(app);
-                        break;
-                    }
+        gridApps.clear();
+
+        for (String favPkg : favList) {
+            for (AppItem app : allApps) {
+                if (app.packageName.equals(favPkg)) {
+                    dockApps.add(app);
+                    break;
                 }
+            }
+        }
+
+        for (AppItem app : allApps) {
+            boolean inFav = false;
+            for (AppItem f : dockApps) {
+                if (f.packageName.equals(app.packageName)) {
+                    inFav = true;
+                    break;
+                }
+            }
+            if (!inFav) {
+                gridApps.add(app);
             }
         }
     }
@@ -275,7 +301,7 @@ public class MainActivity extends Activity {
     private void animateAmbientGlow(int targetColor) {
         if (ambientGlowBg == null) return;
         ValueAnimator colorAnim = ValueAnimator.ofObject(new ArgbEvaluator(), currentGlowColor, targetColor);
-        colorAnim.setDuration(400);
+        colorAnim.setDuration(350);
         colorAnim.addUpdateListener(animator -> {
             int c = (int) animator.getAnimatedValue();
             currentGlowColor = c;
@@ -290,24 +316,20 @@ public class MainActivity extends Activity {
         FrameLayout card;
         ImageView bgImage;
         ImageView iconImage;
-        TextView favBadge; // Минималистичный стеклянный значок избранного
         TextView localLabel;
         View glareOverlay;
-        View glowBorder;
         
         ObjectAnimator shimmerAnim;
         AnimatorSet scaleAnim;
 
-        public AppViewHolder(LinearLayout root, FrameLayout card, ImageView bgImage, ImageView iconImage, TextView favBadge, TextView localLabel, View glareOverlay, View glowBorder) {
+        public AppViewHolder(LinearLayout root, FrameLayout card, ImageView bgImage, ImageView iconImage, TextView localLabel, View glareOverlay) {
             super(root);
             this.root = root;
             this.card = card;
             this.bgImage = bgImage;
             this.iconImage = iconImage;
-            this.favBadge = favBadge;
             this.localLabel = localLabel;
             this.glareOverlay = glareOverlay;
-            this.glowBorder = glowBorder;
         }
 
         public void resetState() {
@@ -317,11 +339,7 @@ public class MainActivity extends Activity {
             card.setScaleY(1.0f);
             card.setTranslationZ(dpToPx(4));
             glareOverlay.setAlpha(0f);
-            glowBorder.setAlpha(0f);
             localLabel.setAlpha(0f);
-            favBadge.setAlpha(0f);
-            favBadge.setScaleX(1f);
-            favBadge.setScaleY(1f);
         }
     }
 
@@ -395,38 +413,6 @@ public class MainActivity extends Activity {
             glareOverlay.setAlpha(0f);
             card.addView(glareOverlay);
 
-            View glowBorder = new View(ctx);
-            glowBorder.setAlpha(0f);
-            glowBorder.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-            
-            GradientDrawable borderDrawable = new GradientDrawable();
-            borderDrawable.setShape(GradientDrawable.RECTANGLE);
-            borderDrawable.setCornerRadius(dpToPx(12));
-            borderDrawable.setStroke(dpToPx(2), 0x99FFFFFF);
-            borderDrawable.setColor(Color.TRANSPARENT);
-            glowBorder.setBackground(borderDrawable);
-            card.addView(glowBorder);
-
-            // МИНИМАЛИСТИЧНЫЙ СТЕКЛЯННЫЙ ЗНАЧОК ИЗБРАННОГО (Белая точка / звездочка в стиле tvOS)
-            TextView favBadge = new TextView(ctx);
-            favBadge.setText("★");
-            favBadge.setTextSize(11f * currentUiScale);
-            favBadge.setTextColor(Color.WHITE);
-            favBadge.setGravity(Gravity.CENTER);
-            
-            GradientDrawable badgeBg = new GradientDrawable();
-            badgeBg.setShape(GradientDrawable.OVAL);
-            badgeBg.setColor(0x4D000000); // Полупрозрачная черная стеклянная капсула
-            badgeBg.setStroke(dpToPx(1), 0x66FFFFFF); // Тонкая белая окантовка
-            favBadge.setBackground(badgeBg);
-            
-            int badgeSize = dpToPx(24);
-            FrameLayout.LayoutParams badgeLp = new FrameLayout.LayoutParams(badgeSize, badgeSize, Gravity.TOP | Gravity.END);
-            badgeLp.setMargins(0, dpToPx(6), dpToPx(6), 0);
-            favBadge.setLayoutParams(badgeLp);
-            favBadge.setAlpha(0f);
-            card.addView(favBadge);
-
             root.addView(card);
 
             TextView localLabel = new TextView(ctx);
@@ -450,7 +436,7 @@ public class MainActivity extends Activity {
             
             root.addView(localLabel);
 
-            return new AppViewHolder(root, card, bgImage, iconImage, favBadge, localLabel, glareOverlay, glowBorder);
+            return new AppViewHolder(root, card, bgImage, iconImage, localLabel, glareOverlay);
         }
 
         @Override
@@ -471,26 +457,11 @@ public class MainActivity extends Activity {
                 vh.iconImage.setVisibility(View.GONE);
             } else {
                 int baseColor = item.dominantColor;
-                int darkColor = Color.rgb((int)(Color.red(baseColor) * 0.25f), (int)(Color.green(baseColor) * 0.25f), (int)(Color.blue(baseColor) * 0.25f));
+                int darkColor = Color.rgb((int)(Color.red(baseColor) * 0.35f), (int)(Color.green(baseColor) * 0.35f), (int)(Color.blue(baseColor) * 0.35f));
                 GradientDrawable gradient = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{baseColor, darkColor});
                 vh.bgImage.setImageDrawable(gradient);
                 vh.iconImage.setImageDrawable(item.icon);
                 vh.iconImage.setVisibility(View.VISIBLE);
-            }
-
-            boolean isFav = false;
-            for (AppItem a : dockApps) {
-                if (a.packageName.equals(item.packageName)) {
-                    isFav = true;
-                    break;
-                }
-            }
-
-            // Управляем отображением стеклянного значка избранного
-            if (!isDock && isFav) {
-                vh.favBadge.setAlpha(1f);
-            } else {
-                vh.favBadge.setAlpha(0f);
             }
 
             if (vh.root.isFocused()) {
@@ -504,44 +475,24 @@ public class MainActivity extends Activity {
 
             vh.root.setOnLongClickListener(v -> {
                 if (!isDock) {
-                    AppItem favItem = null;
-                    for (AppItem a : dockApps) {
-                        if (a.packageName.equals(item.packageName)) { favItem = a; break; }
+                    dockApps.add(item);
+                    gridApps.remove(item);
+                    saveFavorites();
+                    
+                    if (dockRecycler != null && dockRecycler.getAdapter() != null) {
+                        dockRecycler.getAdapter().notifyItemInserted(dockApps.size() - 1);
+                        dockRecycler.smoothScrollToPosition(dockApps.size() - 1);
                     }
-                    if (favItem == null) {
-                        // Добавляем в избранное
-                        dockApps.add(item);
-                        saveFavorites();
-                        // Эффектное появление стеклянного значка
-                        vh.favBadge.setAlpha(0f);
-                        vh.favBadge.setScaleX(0.5f);
-                        vh.favBadge.setScaleY(0.5f);
-                        vh.favBadge.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(250).setInterpolator(new OvershootInterpolator()).start();
-                        
-                        if (dockRecycler != null && dockRecycler.getAdapter() != null) {
-                            dockRecycler.getAdapter().notifyItemInserted(dockApps.size() - 1);
-                            dockRecycler.smoothScrollToPosition(dockApps.size() - 1);
-                        }
-                    } else {
-                        // Убираем из избранного — плавно гасим значок и удаляем
-                        int pos = dockApps.indexOf(favItem);
-                        if (pos >= 0) {
-                            dockApps.remove(pos);
-                            saveFavorites();
-                            vh.favBadge.animate().alpha(0f).scaleX(0.5f).scaleY(0.5f).setDuration(200).withEndAction(() -> notifyItemChanged(position)).start();
-                            if (dockRecycler != null && dockRecycler.getAdapter() != null) {
-                                dockRecycler.getAdapter().notifyItemRemoved(pos);
-                            }
-                        }
-                    }
+                    notifyDataSetChanged();
                 } else {
-                    int pos = dockApps.indexOf(item);
-                    if (pos >= 0) {
-                        dockApps.remove(pos);
-                        saveFavorites();
-                        if (gridRecycler != null && gridRecycler.getAdapter() != null) {
-                            gridRecycler.getAdapter().notifyDataSetChanged();
-                        }
+                    dockApps.remove(item);
+                    gridApps.add(item);
+                    Collections.sort(gridApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
+                    saveFavorites();
+                    
+                    notifyItemRemoved(position);
+                    if (gridRecycler != null && gridRecycler.getAdapter() != null) {
+                        gridRecycler.getAdapter().notifyDataSetChanged();
                     }
                 }
                 return true;
@@ -565,7 +516,6 @@ public class MainActivity extends Activity {
 
                     animateAmbientGlow(item.dominantColor);
                     
-                    vh.glowBorder.animate().alpha(1f).setDuration(200).start();
                     vh.glareOverlay.animate().alpha(1f).setDuration(300).start();
                     if (vh.shimmerAnim == null) {
                         vh.glareOverlay.setTranslationX(-cardWidth * 1.2f);
@@ -604,7 +554,6 @@ public class MainActivity extends Activity {
                     vh.scaleAnim.setInterpolator(new DecelerateInterpolator(1.5f));
                     vh.scaleAnim.start();
 
-                    vh.glowBorder.animate().alpha(0f).setDuration(150).start();
                     if (vh.shimmerAnim != null) vh.shimmerAnim.cancel();
                     vh.glareOverlay.animate().alpha(0f).setDuration(200).start();
                     
