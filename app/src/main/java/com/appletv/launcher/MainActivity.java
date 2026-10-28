@@ -277,7 +277,7 @@ public class MainActivity extends Activity {
     private void animateAmbientGlow(int targetColor) {
         if (ambientGlowBg == null) return;
         ValueAnimator colorAnim = ValueAnimator.ofObject(new ArgbEvaluator(), currentGlowColor, targetColor);
-        colorAnim.setDuration(300); // Синхронизируем свечение с фокусом
+        colorAnim.setDuration(280);
         colorAnim.addUpdateListener(animator -> {
             int c = (int) animator.getAnimatedValue();
             currentGlowColor = c;
@@ -323,8 +323,6 @@ public class MainActivity extends Activity {
             card.setTag("main_card");
             card.setFocusable(false);
             card.setClickable(false);
-            
-            // Базовый мягкий уровень тени для всех карточек
             card.setElevation(dpToPx((int)(4 * currentUiScale)));
             
             int width = dpToPx((int)(144 * currentUiScale));
@@ -472,27 +470,25 @@ public class MainActivity extends Activity {
 
             root.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
-                    // Глубокий, мягкий и эластичный ZOOM
                     animateScale(card, 1.10f, 1.10f, dpToPx((int)(30 * currentUiScale)));
                     animateAmbientGlow(item.dominantColor);
                     
                     if (isDock) {
                         if (heroTitle != null) {
-                            heroTitle.animate().alpha(1f).setDuration(300).setInterpolator(new DecelerateInterpolator(2.0f)).start();
+                            heroTitle.animate().alpha(1f).setDuration(200).start();
                             heroTitle.setText(item.label);
                         }
                     } else {
                         if (heroTitle != null) {
-                            heroTitle.animate().alpha(0f).setDuration(300).setInterpolator(new DecelerateInterpolator(2.0f)).start();
+                            heroTitle.animate().alpha(0f).setDuration(200).start();
                         }
-                        localLabel.animate().alpha(1f).setDuration(300).setInterpolator(new DecelerateInterpolator(2.0f)).start();
+                        localLabel.animate().alpha(1f).setDuration(200).start();
                     }
                 } else {
-                    // Мягкий возврат
                     animateScale(card, 1.0f, 1.0f, 0f);
                     
                     if (!isDock) {
-                        localLabel.animate().alpha(0f).setDuration(300).setInterpolator(new DecelerateInterpolator(2.0f)).start();
+                        localLabel.animate().alpha(0f).setDuration(200).start();
                     }
                 }
             });
@@ -511,15 +507,14 @@ public class MainActivity extends Activity {
         }
     }
 
-    // Централизованный метод анимации с интерполятором замедления (DecelerateInterpolator(2.0f))
     private void animateScale(View view, float sx, float sy, float elev) {
         ObjectAnimator ax = ObjectAnimator.ofFloat(view, "scaleX", sx);
         ObjectAnimator ay = ObjectAnimator.ofFloat(view, "scaleY", sy);
         ObjectAnimator az = ObjectAnimator.ofFloat(view, "translationZ", elev);
         AnimatorSet set = new AnimatorSet();
         set.playTogether(ax, ay, az);
-        set.setDuration(300); // Строго 300 мс для синхронизации со скроллом и текстом
-        set.setInterpolator(new DecelerateInterpolator(2.0f)); // Эластичное "кинематографичное" замедление
+        set.setDuration(180); // Возвращаем быстрые и отзывчивые 180мс
+        set.setInterpolator(new DecelerateInterpolator());
         set.start();
     }
 }

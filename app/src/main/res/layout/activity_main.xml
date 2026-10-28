@@ -17,8 +17,8 @@
         android:layout_height="match_parent"
         android:background="@drawable/hero_gradient_overlay" />
 
-    <!-- ИСПОЛЬЗУЕМ НАШ КАСТОМНЫЙ ПЛАВНЫЙ СКРОЛЛ -->
-    <com.appletv.launcher.SmoothScrollView
+    <!-- Возвращаем стандартный быстрый ScrollView -->
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipChildren="false"
@@ -43,8 +43,6 @@
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
-                <!-- Маска остается. Высота 125dp с запасом вмещает увеличенные на 10% карточки по вертикали, 
-                     не обрезая их, но иконки красиво скроются за края по горизонтали -->
                 <FrameLayout
                     android:id="@+id/dock_container"
                     android:layout_width="match_parent"
@@ -82,7 +80,7 @@
                 android:nestedScrollingEnabled="false" />
 
         </LinearLayout>
-    </com.appletv.launcher.SmoothScrollView>
+    </ScrollView>
 
     <View
         android:layout_width="match_parent"
