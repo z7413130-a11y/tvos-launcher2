@@ -31,7 +31,7 @@
             android:orientation="vertical"
             android:paddingBottom="120dp">
 
-            <!-- Фиксированная высота верхнего дока (не трогаем!) -->
+            <!-- Высота верхнего дока зафиксирована -->
             <Space
                 android:layout_width="match_parent"
                 android:layout_height="350dp" />
@@ -44,8 +44,9 @@
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
-                <!-- ДОБАВЛЕНО: clipToOutline="true" и clipChildren="true", чтобы иконки строго прятались за стеклянные края -->
+                <!-- ID добавлен для применения аппаратной маски закруглений в Java -->
                 <FrameLayout
+                    android:id="@+id/dock_container"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="32dp"
@@ -56,22 +57,25 @@
                     android:clipChildren="true"
                     android:clipToPadding="false">
 
+                    <!-- minHeight и minWidth не дадут доку схлопнуться, если избранного еще нет -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/dock_recycler"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:minHeight="102dp"
+                        android:minWidth="158dp"
                         android:clipChildren="false"
                         android:clipToPadding="false"
                         android:orientation="horizontal" />
                 </FrameLayout>
             </LinearLayout>
 
-            <!-- Фиксированная высота сетки (не трогаем!) -->
+            <!-- Высота нижней сетки зафиксирована -->
             <Space
                 android:layout_width="match_parent"
                 android:layout_height="25dp" />
 
-            <!-- СЕТКА ВСЕХ ПРИЛОЖЕНИЙ (Теперь отцентрирована и сжимается по контенту) -->
+            <!-- СЕТКА ВСЕХ ПРИЛОЖЕНИЙ -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/grid_recycler"
                 android:layout_width="wrap_content"

@@ -75,6 +75,18 @@ public class MainActivity extends Activity {
         dockRecycler = findViewById(R.id.dock_recycler);
         gridRecycler = findViewById(R.id.grid_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
+        
+        // Включаем аппаратную обрезку для идеального скругления краев дока
+        FrameLayout dockContainer = findViewById(R.id.dock_container);
+        if (dockContainer != null) {
+            dockContainer.setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(36));
+                }
+            });
+            dockContainer.setClipToOutline(true);
+        }
 
         if (heroTitle != null) {
             heroTitle.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
@@ -86,7 +98,8 @@ public class MainActivity extends Activity {
         }
 
         if (gridRecycler != null) {
-            gridRecycler.setLayoutManager(new GridLayoutManager(this, 6));
+            // Строго 4 колонки в нижней сетке, как просили
+            gridRecycler.setLayoutManager(new GridLayoutManager(this, 4));
             gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false));
         }
 
@@ -99,6 +112,14 @@ public class MainActivity extends Activity {
         }
 
         loadInstalledApps();
+    }
+
+    private void saveFavorites() {
+        StringBuilder sb = new StringBuilder();
+        for (AppItem item : dockApps) {
+            sb.append(item.packageName).append(",");
+        }
+        prefs.edit().putString("favorites", sb.toString()).apply();
     }
 
     private int dpToPx(int dp) {
@@ -162,14 +183,23 @@ public class MainActivity extends Activity {
 
         Collections.sort(allApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
 
-        dockApps.clear();
         gridApps.clear();
+        gridApps.addAll(allApps); // Внизу теперь абсолютно все приложения
 
-        int limit = Math.min(6, allApps.size());
-        for (int i = 0; i < limit; i++) {
-            dockApps.add(allApps.get(i));
+        dockApps.clear();
+        String favs = prefs.getString("favorites", "");
+        if (!favs.isEmpty()) {
+            String[] favArray = favs.split(",");
+            for (String pkg : favArray) {
+                if (pkg.trim().isEmpty()) continue;
+                for (AppItem app : allApps) {
+                    if (app.packageName.equals(pkg)) {
+                        dockApps.add(app);
+                        break;
+                    }
+                }
+            }
         }
-        gridApps.addAll(allApps);
 
         if (dockRecycler != null && dockRecycler.getAdapter() != null) {
             dockRecycler.getAdapter().notifyDataSetChanged();
@@ -214,7 +244,7 @@ public class MainActivity extends Activity {
             
             ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height);
             
-            // ДОБАВЛЕНЫ ПРОСТОРНЫЕ ОТСТУПЫ: Раздвигаем сетку и по бокам, и вверх-вниз
+            // Сохранены идеальные отступы без изменений!
             int marginX = isDock ? dpToPx(10) : dpToPx(38);
             int marginY = isDock ? dpToPx(10) : dpToPx(30);
             
@@ -256,6 +286,35 @@ public class MainActivity extends Activity {
             GradientDrawable cardBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{baseColor, darkColor});
             cardBg.setCornerRadius(dpToPx(18));
             card.setBackground(cardBg);
+
+            // Обработка долгого нажатия для системы Избранного
+            card.setOnLongClickListener(v -> {
+                if (!isDock) {
+                    boolean exists = false;
+                    for (AppItem a : dockApps) {
+                        if (a.packageName.equals(item.packageName)) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        dockApps.add(item);
+                        saveFavorites();
+                        if (dockRecycler != null && dockRecycler.getAdapter() != null) {
+                            dockRecycler.getAdapter().notifyItemInserted(dockApps.size() - 1);
+                            dockRecycler.smoothScrollToPosition(dockApps.size() - 1);
+                        }
+                    }
+                } else {
+                    int pos = dockApps.indexOf(item);
+                    if (pos >= 0) {
+                        dockApps.remove(pos);
+                        saveFavorites();
+                        notifyItemRemoved(pos);
+                    }
+                }
+                return true; // Ивент обработан
+            });
 
             card.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
