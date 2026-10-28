@@ -214,9 +214,9 @@ public class MainActivity extends Activity {
             
             ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height);
             
-            // Расширяем расстояние по бокам (X) для сетки, но вертикальное (Y) оставляем 10dp
-            int marginX = isDock ? dpToPx(10) : dpToPx(35);
-            int marginY = dpToPx(10);
+            // ДОБАВЛЕНЫ ПРОСТОРНЫЕ ОТСТУПЫ: Раздвигаем сетку и по бокам, и вверх-вниз
+            int marginX = isDock ? dpToPx(10) : dpToPx(38);
+            int marginY = isDock ? dpToPx(10) : dpToPx(30);
             
             lp.setMargins(marginX, marginY, marginX, marginY);
             card.setLayoutParams(lp);
