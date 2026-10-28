@@ -29,6 +29,7 @@ import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -107,11 +108,6 @@ public class MainActivity extends Activity {
             heroTitle.setAlpha(0f); 
         }
 
-        if (dockRecycler != null) {
-            dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-            dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true));
-        }
-
         if (btnSettings != null) {
             btnSettings.setOnClickListener(v -> {
                 try {
@@ -133,6 +129,7 @@ public class MainActivity extends Activity {
         return prefs.getFloat("ui_scale", 1.0f);
     }
 
+    // Здесь рассчитывается математика идеального заполнения экрана
     private void setupDynamicGrid() {
         if (gridRecycler == null) return;
         
@@ -140,25 +137,29 @@ public class MainActivity extends Activity {
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         int screenWidth = metrics.widthPixels;
         
-        float baseItemTotalWidthDp = 144f + (16f * 2f);
-        int itemTotalWidthPx = dpToPx((int)(baseItemTotalWidthDp * currentUiScale));
-        int safeZonePx = dpToPx(128); 
+        // Отступы контейнеров по краям экрана (по 48dp слева и справа = 96dp)
+        int screenMarginsPx = dpToPx((int)(96 * currentUiScale));
+        int availableWidthPx = screenWidth - screenMarginsPx;
         
-        int availableWidthPx = screenWidth - safeZonePx;
-        int columns = availableWidthPx / itemTotalWidthPx;
+        // Как на фото Apple TV: строго 6 колонок
+        int columns = 6;
+        int itemCellWidthPx = availableWidthPx / columns;
         
-        if (columns < 4) columns = 4;
+        // Внутренний отступ между карточками (по 8dp с каждой стороны)
+        int itemMarginPx = dpToPx((int)(8 * currentUiScale));
+        
+        // Чистый размер самой карточки (чтобы 6 штук идеально заполнили ширину)
+        int cardWidthPx = itemCellWidthPx - (itemMarginPx * 2);
+        int cardHeightPx = (int) (cardWidthPx * (9f / 16f)); // Строго 16:9
 
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
         
-        if (gridRecycler.getAdapter() == null) {
-            gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false));
-        } else {
-            gridRecycler.getAdapter().notifyDataSetChanged();
-        }
+        // Передаем размеры напрямую в адаптер
+        gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, cardWidthPx, cardHeightPx, itemMarginPx));
         
-        if (dockRecycler != null && dockRecycler.getAdapter() != null) {
-            dockRecycler.getAdapter().notifyDataSetChanged();
+        if (dockRecycler != null) {
+            dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+            dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true, cardWidthPx, cardHeightPx, itemMarginPx));
         }
     }
 
@@ -290,10 +291,18 @@ public class MainActivity extends Activity {
     private class TvosAppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         private final List<AppItem> items;
         private final boolean isDock;
+        
+        // Получаем точные вычисленные размеры
+        private final int cardWidth;
+        private final int cardHeight;
+        private final int itemMargin;
 
-        public TvosAppAdapter(List<AppItem> items, boolean isDock) {
+        public TvosAppAdapter(List<AppItem> items, boolean isDock, int cardWidth, int cardHeight, int itemMargin) {
             this.items = items;
             this.isDock = isDock;
+            this.cardWidth = cardWidth;
+            this.cardHeight = cardHeight;
+            this.itemMargin = itemMargin;
         }
 
         @NonNull
@@ -309,14 +318,12 @@ public class MainActivity extends Activity {
             root.setClipChildren(false); 
             root.setClipToPadding(false);
 
-            int marginX = isDock ? dpToPx((int)(10 * currentUiScale)) : dpToPx((int)(16 * currentUiScale));
-            int marginY = isDock ? dpToPx((int)(10 * currentUiScale)) : dpToPx((int)(14 * currentUiScale));
-            
             RecyclerView.LayoutParams rootLp = new RecyclerView.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, 
                 ViewGroup.LayoutParams.WRAP_CONTENT
             );
-            rootLp.setMargins(marginX, marginY, marginX, marginY);
+            // Применяем отступы
+            rootLp.setMargins(itemMargin, itemMargin, itemMargin, itemMargin);
             root.setLayoutParams(rootLp);
             
             FrameLayout card = new FrameLayout(ctx);
@@ -325,9 +332,8 @@ public class MainActivity extends Activity {
             card.setClickable(false);
             card.setElevation(dpToPx((int)(4 * currentUiScale)));
             
-            int width = dpToPx((int)(144 * currentUiScale));
-            int height = dpToPx((int)(81 * currentUiScale));
-            card.setLayoutParams(new LinearLayout.LayoutParams(width, height));
+            // Применяем динамическую ширину и высоту
+            card.setLayoutParams(new LinearLayout.LayoutParams(cardWidth, cardHeight));
             
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
@@ -469,16 +475,32 @@ public class MainActivity extends Activity {
             });
 
             root.setOnFocusChangeListener((v, hasFocus) -> {
+                Context ctx = v.getContext();
+                ScrollView sv = ((Activity) ctx).findViewById(R.id.main_scroll_view);
+                View dockContainer = ((Activity) ctx).findViewById(R.id.dock_container);
+                
                 if (hasFocus) {
                     animateScale(card, 1.10f, 1.10f, dpToPx((int)(30 * currentUiScale)));
                     animateAmbientGlow(item.dominantColor);
                     
                     if (isDock) {
+                        // Если фокус вернулся наверх - плавно скроллим экран в самый верх к заголовку
+                        if (sv != null) sv.smoothScrollTo(0, 0);
+                        
                         if (heroTitle != null) {
                             heroTitle.animate().alpha(1f).setDuration(200).start();
                             heroTitle.setText(item.label);
                         }
                     } else {
+                        // АВТО-ОПУСКАНИЕ (Snap to Top): 
+                        // Если перешли в сетку, и экран находится высоко, плавно прокручиваем его так, чтобы док был сверху
+                        if (sv != null && dockContainer != null) {
+                            int targetY = dockContainer.getTop() - dpToPx((int)(24 * currentUiScale));
+                            if (sv.getScrollY() < targetY - dpToPx(30)) {
+                                sv.smoothScrollTo(0, targetY);
+                            }
+                        }
+                        
                         if (heroTitle != null) {
                             heroTitle.animate().alpha(0f).setDuration(200).start();
                         }
@@ -513,7 +535,7 @@ public class MainActivity extends Activity {
         ObjectAnimator az = ObjectAnimator.ofFloat(view, "translationZ", elev);
         AnimatorSet set = new AnimatorSet();
         set.playTogether(ax, ay, az);
-        set.setDuration(180); // Возвращаем быстрые и отзывчивые 180мс
+        set.setDuration(180);
         set.setInterpolator(new DecelerateInterpolator());
         set.start();
     }

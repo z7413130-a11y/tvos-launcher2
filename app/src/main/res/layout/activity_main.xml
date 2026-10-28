@@ -17,8 +17,9 @@
         android:layout_height="match_parent"
         android:background="@drawable/hero_gradient_overlay" />
 
-    <!-- Возвращаем стандартный быстрый ScrollView -->
+    <!-- Добавили ID для управления скроллом из кода -->
     <ScrollView
+        android:id="@+id/main_scroll_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipChildren="false"
@@ -32,6 +33,7 @@
             android:orientation="vertical"
             android:paddingBottom="120dp">
 
+            <!-- Верхний отступ дока -->
             <Space
                 android:layout_width="match_parent"
                 android:layout_height="350dp" />
@@ -43,22 +45,23 @@
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
+                <!-- Выровняли док по ширине: layout_marginHorizontal="48dp" -->
                 <FrameLayout
                     android:id="@+id/dock_container"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:minHeight="125dp"
-                    android:layout_marginHorizontal="32dp"
+                    android:layout_marginHorizontal="48dp"
                     android:background="@drawable/glass_dock_bg"
                     android:clipToOutline="true"
                     android:clipChildren="true"
                     android:clipToPadding="false">
 
+                    <!-- Убрали боковые внутренние отступы, чтобы карточки встали вровень -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/dock_recycler"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:paddingHorizontal="24dp"
                         android:paddingVertical="10dp"
                         android:clipChildren="false"
                         android:clipToPadding="false"
@@ -66,15 +69,17 @@
                 </FrameLayout>
             </LinearLayout>
 
+            <!-- Расстояние между доком и сеткой -->
             <Space
                 android:layout_width="match_parent"
                 android:layout_height="25dp" />
 
+            <!-- Выровняли сетку по ширине: layout_marginHorizontal="48dp" -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/grid_recycler"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center_horizontal"
+                android:layout_marginHorizontal="48dp"
                 android:clipChildren="false"
                 android:clipToPadding="false"
                 android:nestedScrollingEnabled="false" />
