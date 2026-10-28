@@ -17,6 +17,16 @@
         android:layout_height="match_parent"
         android:background="@drawable/hero_gradient_overlay" />
 
+    <!-- Слой затемнения фона, который плавно появляется при вызове сетки (как в tvOS) -->
+    <View
+        android:id="@+id/grid_dark_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#99000000"
+        android:alpha="0"
+        android:focusable="false"
+        android:clickable="false" />
+
     <ScrollView
         android:id="@+id/main_scroll_view"
         android:layout_width="match_parent"
@@ -88,7 +98,6 @@
         android:layout_height="140dp"
         android:background="@drawable/top_fade_gradient" />
 
-    <!-- Верхняя панель с ID для синхронной анимации скрытия -->
     <RelativeLayout
         android:id="@+id/top_status_container"
         android:layout_width="match_parent"
