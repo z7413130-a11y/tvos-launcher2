@@ -41,9 +41,10 @@
             android:orientation="vertical"
             android:paddingBottom="120dp">
 
+            <!-- ВОТ ЗДЕСЬ ОПУСКАЕМ ВЕСЬ БЛОК: было 350dp, стало 440dp -->
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="350dp" />
+                android:layout_height="440dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -52,7 +53,6 @@
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
-                <!-- 36dp margin + 16dp padding = 52dp от края экрана до первой иконки -->
                 <FrameLayout
                     android:id="@+id/dock_container"
                     android:layout_width="match_parent"
@@ -81,7 +81,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="25dp" />
 
-            <!-- Делаем marginHorizontal="52dp" для идеального совпадения с колонками дока -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/grid_recycler"
                 android:layout_width="match_parent"
