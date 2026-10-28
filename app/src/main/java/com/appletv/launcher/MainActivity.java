@@ -56,7 +56,6 @@ public class MainActivity extends Activity {
     private View gridDarkOverlay;
     private RecyclerView dockRecycler;
     private RecyclerView gridRecycler;
-    private FrameLayout btnSettings;
     
     private final List<AppItem> dockApps = new ArrayList<>();
     private final List<AppItem> gridApps = new ArrayList<>();
@@ -118,7 +117,6 @@ public class MainActivity extends Activity {
         gridDarkOverlay = findViewById(R.id.grid_dark_overlay);
         dockRecycler = findViewById(R.id.dock_recycler);
         gridRecycler = findViewById(R.id.grid_recycler);
-        btnSettings = findViewById(R.id.btn_launcher_settings);
         
         if (dockContainer != null) {
             dockContainer.setOutlineProvider(new ViewOutlineProvider() {
@@ -132,14 +130,6 @@ public class MainActivity extends Activity {
 
         if (heroTitle != null) {
             heroTitle.setTypeface(Typeface.create("sans-serif-black", Typeface.BOLD));
-        }
-
-        if (btnSettings != null) {
-            btnSettings.setOnClickListener(v -> {
-                try {
-                    startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
-                } catch (Exception ignored) {}
-            });
         }
 
         loadInstalledApps();
@@ -233,20 +223,22 @@ public class MainActivity extends Activity {
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         int screenWidth = metrics.widthPixels;
         
-        int screenMarginsPx = dpToPx((int)(96 * currentUiScale));
+        // Делаем сетку компактнее (меньше отступ от краев экрана)
+        int screenMarginsPx = dpToPx((int)(72 * currentUiScale)); 
         int availableWidthPx = screenWidth - screenMarginsPx;
         
         int columns = 6;
         int itemCellWidthPx = availableWidthPx / columns;
         
-        int gridItemMarginPx = dpToPx((int)(8 * currentUiScale));
+        // Уменьшаем промежутки между карточками для плотности и размера (было 8, стало 4.5)
+        int gridItemMarginPx = dpToPx((int)(4.5f * currentUiScale));
         int gridCardWidthPx = itemCellWidthPx - (gridItemMarginPx * 2);
         int gridCardHeightPx = (int) (gridCardWidthPx * (9f / 16f)); 
 
         float dockScaleMult = 1.15f;
         int dockCardWidthPx = (int) (gridCardWidthPx * dockScaleMult);
         int dockCardHeightPx = (int) (gridCardHeightPx * dockScaleMult);
-        int dockItemMarginPx = dpToPx((int)(8 * currentUiScale));
+        int dockItemMarginPx = dpToPx((int)(6 * currentUiScale)); // Чуть плотнее в доке
 
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
         gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, gridCardWidthPx, gridCardHeightPx, gridItemMarginPx));
@@ -568,96 +560,16 @@ public class MainActivity extends Activity {
                 vh.iconImage.setVisibility(View.VISIBLE);
             }
 
-            // ПРЫЖОК НА ВТОРУЮ СТРОКУ СЕТКИ ПРИ НАЖАТИИ ВНИЗ ИЗ ДОКА
+            // БЛОКИРУЕМ ФОКУС: чтобы он не уходил выше Дока
             vh.root.setOnKeyListener((v, keyCode, event) -> {
                 if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                    if (isDock && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
-                        if (!gridApps.isEmpty()) {
-                            int columns = 6;
-                            int targetCol = position % columns;
-                            // Индекс второй строчки (6-11)
-                            int targetIndex = columns + targetCol;
-                            if (targetIndex >= gridApps.size()) {
-                                targetIndex = gridApps.size() - 1;
-                            }
-                            final int finalTarget = Math.max(0, targetIndex);
-                            
-                            gridRecycler.scrollToPosition(finalTarget);
-                            gridRecycler.post(() -> {
-                                RecyclerView.ViewHolder holder = gridRecycler.findViewHolderForAdapterPosition(finalTarget);
-                                if (holder != null) {
-                                    holder.itemView.requestFocus();
-                                }
-                            });
-                            return true;
-                        }
+                    if (isDock && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                        return true; // Гасим нажатие, фокус остается на месте
                     }
                 }
                 return false;
             });
 
-            vh.root.setOnFocusChangeListener((v, hasFocus) -> {
-                if (hasFocus) {
-                    if (vh.scaleAnim != null) vh.scaleAnim.cancel();
-                    vh.scaleAnim = new AnimatorSet();
-                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.12f);
-                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.12f);
-                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(30 * currentUiScale)));
-                    vh.scaleAnim.playTogether(sx, sy, sz);
-                    vh.scaleAnim.setDuration(350);
-                    vh.scaleAnim.setInterpolator(new OvershootInterpolator(1.1f));
-                    vh.scaleAnim.start();
-
-                    animateAmbientGlow(item.dominantColor);
-                    
-                    vh.glareOverlay.animate().alpha(1f).setDuration(300).start();
-                    if (vh.shimmerAnim == null) {
-                        vh.glareOverlay.setTranslationX(-cardWidth * 1.2f);
-                        vh.shimmerAnim = ObjectAnimator.ofFloat(vh.glareOverlay, "translationX", -cardWidth * 1.2f, cardWidth * 2.0f);
-                        vh.shimmerAnim.setDuration(4200);
-                        vh.shimmerAnim.setRepeatCount(ValueAnimator.INFINITE);
-                    }
-                    vh.shimmerAnim.start();
-
-                    // Обрабатываем прозрачность времени и заголовка при фокусе
-                    if (isDock) {
-                        if (heroTitle != null) {
-                            heroTitle.animate().alpha(1f).setDuration(200).start();
-                            heroTitle.setText(item.label);
-                        }
-                        if (timePillContainer != null) {
-                            timePillContainer.animate().alpha(1f).setDuration(200).start();
-                        }
-                    } else {
-                        if (heroTitle != null) {
-                            heroTitle.animate().alpha(0f).setDuration(200).start();
-                        }
-                        if (timePillContainer != null) {
-                            timePillContainer.animate().alpha(0f).setDuration(200).start();
-                        }
-                        vh.localLabel.animate().alpha(1f).setDuration(200).start();
-                    }
-                } else {
-                    if (vh.scaleAnim != null) vh.scaleAnim.cancel();
-                    vh.scaleAnim = new AnimatorSet();
-                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.0f);
-                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.0f);
-                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(4 * currentUiScale)));
-                    vh.scaleAnim.playTogether(sx, sy, sz);
-                    vh.scaleAnim.setDuration(250);
-                    vh.scaleAnim.setInterpolator(new DecelerateInterpolator(1.5f));
-                    vh.scaleAnim.start();
-
-                    if (vh.shimmerAnim != null) vh.shimmerAnim.cancel();
-                    vh.glareOverlay.animate().alpha(0f).setDuration(200).start();
-                    
-                    if (!isDock) {
-                        vh.localLabel.animate().alpha(0f).setDuration(200).start();
-                    }
-                }
-            });
-
-            // Длинное нажатие для перемещения в/из Избранного
             vh.root.setOnLongClickListener(v -> {
                 if (!isDock) {
                     if (dockApps.contains(item)) return true;
@@ -721,6 +633,67 @@ public class MainActivity extends Activity {
                     outAnim.start();
                 }
                 return true;
+            });
+
+            vh.root.setOnFocusChangeListener((v, hasFocus) -> {
+                if (hasFocus) {
+                    if (vh.scaleAnim != null) vh.scaleAnim.cancel();
+                    vh.scaleAnim = new AnimatorSet();
+                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.12f);
+                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.12f);
+                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(30 * currentUiScale)));
+                    vh.scaleAnim.playTogether(sx, sy, sz);
+                    vh.scaleAnim.setDuration(350);
+                    vh.scaleAnim.setInterpolator(new OvershootInterpolator(1.1f));
+                    vh.scaleAnim.start();
+
+                    animateAmbientGlow(item.dominantColor);
+                    
+                    vh.glareOverlay.animate().alpha(1f).setDuration(300).start();
+                    if (vh.shimmerAnim == null) {
+                        vh.glareOverlay.setTranslationX(-cardWidth * 1.2f);
+                        vh.shimmerAnim = ObjectAnimator.ofFloat(vh.glareOverlay, "translationX", -cardWidth * 1.2f, cardWidth * 2.0f);
+                        vh.shimmerAnim.setDuration(4200);
+                        vh.shimmerAnim.setRepeatCount(ValueAnimator.INFINITE);
+                    }
+                    vh.shimmerAnim.start();
+
+                    // Обработка скрытия названия и ЧАСОВ
+                    if (isDock) {
+                        if (heroTitle != null) {
+                            heroTitle.animate().alpha(1f).setDuration(200).start();
+                            heroTitle.setText(item.label);
+                        }
+                        if (timePillContainer != null) {
+                            timePillContainer.animate().alpha(1f).setDuration(200).start();
+                        }
+                    } else {
+                        if (heroTitle != null) {
+                            heroTitle.animate().alpha(0f).setDuration(200).start();
+                        }
+                        if (timePillContainer != null) {
+                            timePillContainer.animate().alpha(0f).setDuration(200).start();
+                        }
+                        vh.localLabel.animate().alpha(1f).setDuration(200).start();
+                    }
+                } else {
+                    if (vh.scaleAnim != null) vh.scaleAnim.cancel();
+                    vh.scaleAnim = new AnimatorSet();
+                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.0f);
+                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.0f);
+                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(4 * currentUiScale)));
+                    vh.scaleAnim.playTogether(sx, sy, sz);
+                    vh.scaleAnim.setDuration(250);
+                    vh.scaleAnim.setInterpolator(new DecelerateInterpolator(1.5f));
+                    vh.scaleAnim.start();
+
+                    if (vh.shimmerAnim != null) vh.shimmerAnim.cancel();
+                    vh.glareOverlay.animate().alpha(0f).setDuration(200).start();
+                    
+                    if (!isDock) {
+                        vh.localLabel.animate().alpha(0f).setDuration(200).start();
+                    }
+                }
             });
 
             vh.root.setOnClickListener(v -> {

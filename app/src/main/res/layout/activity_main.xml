@@ -57,7 +57,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:minHeight="110dp"
-                    android:layout_marginHorizontal="48dp"
+                    android:layout_marginHorizontal="36dp"
                     android:paddingVertical="10dp"
                     android:paddingHorizontal="16dp"
                     android:background="@drawable/glass_dock_bg"
@@ -84,7 +84,7 @@
                 android:id="@+id/grid_recycler"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="48dp"
+                android:layout_marginHorizontal="36dp"
                 android:clipChildren="false"
                 android:clipToPadding="false"
                 android:nestedScrollingEnabled="false" />
@@ -117,7 +117,6 @@
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed" />
 
-        <!-- Добавлен ID для плашки времени и настроек -->
         <LinearLayout
             android:id="@+id/time_pill_container"
             android:layout_width="wrap_content"
@@ -139,13 +138,14 @@
                 android:textSize="13sp"
                 android:textStyle="bold" />
 
+            <!-- Кнопку настроек делаем некликабельной для пульта, чтобы фокус туда не убегал -->
             <FrameLayout
                 android:id="@+id/btn_launcher_settings"
                 android:layout_width="26dp"
                 android:layout_height="26dp"
                 android:layout_marginStart="8dp"
-                android:focusable="true"
-                android:clickable="true">
+                android:focusable="false"
+                android:clickable="false">
 
                 <TextView
                     android:layout_width="wrap_content"
