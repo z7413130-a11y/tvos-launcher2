@@ -223,22 +223,23 @@ public class MainActivity extends Activity {
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         int screenWidth = metrics.widthPixels;
         
-        // Делаем сетку компактнее (меньше отступ от краев экрана)
-        int screenMarginsPx = dpToPx((int)(72 * currentUiScale)); 
+        // Математическая хитрость: уменьшаем боковые отступы экрана, чтобы дать больше ширины сетке
+        int screenMarginsPx = dpToPx((int)(30 * currentUiScale)); 
         int availableWidthPx = screenWidth - screenMarginsPx;
         
         int columns = 6;
         int itemCellWidthPx = availableWidthPx / columns;
         
-        // Уменьшаем промежутки между карточками для плотности и размера (было 8, стало 4.5)
-        int gridItemMarginPx = dpToPx((int)(4.5f * currentUiScale));
+        // Увеличиваем отступы между самими карточками (чтобы при зуме 1.12x они не касались друг друга)
+        // Но так как availableWidthPx стал больше, итоговый размер карточки (gridCardWidthPx) останется ровно таким же крупным!
+        int gridItemMarginPx = dpToPx((int)(8.5f * currentUiScale));
         int gridCardWidthPx = itemCellWidthPx - (gridItemMarginPx * 2);
         int gridCardHeightPx = (int) (gridCardWidthPx * (9f / 16f)); 
 
         float dockScaleMult = 1.15f;
         int dockCardWidthPx = (int) (gridCardWidthPx * dockScaleMult);
         int dockCardHeightPx = (int) (gridCardHeightPx * dockScaleMult);
-        int dockItemMarginPx = dpToPx((int)(6 * currentUiScale)); // Чуть плотнее в доке
+        int dockItemMarginPx = dpToPx((int)(9 * currentUiScale));
 
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
         gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, gridCardWidthPx, gridCardHeightPx, gridItemMarginPx));
@@ -560,11 +561,11 @@ public class MainActivity extends Activity {
                 vh.iconImage.setVisibility(View.VISIBLE);
             }
 
-            // БЛОКИРУЕМ ФОКУС: чтобы он не уходил выше Дока
+            // ЗАПРЕЩАЕМ УХОД ФОКУСА ВВЕРХ ИЗ ДОКА
             vh.root.setOnKeyListener((v, keyCode, event) -> {
                 if (event.getAction() == KeyEvent.ACTION_DOWN) {
                     if (isDock && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                        return true; // Гасим нажатие, фокус остается на месте
+                        return true; // Блокируем побег фокуса за пределы экрана!
                     }
                 }
                 return false;
@@ -658,7 +659,7 @@ public class MainActivity extends Activity {
                     }
                     vh.shimmerAnim.start();
 
-                    // Обработка скрытия названия и ЧАСОВ
+                    // Полностью скрываем и показываем заголовок и ЧАСЫ (всё привязано к фокусу дока)
                     if (isDock) {
                         if (heroTitle != null) {
                             heroTitle.animate().alpha(1f).setDuration(200).start();
