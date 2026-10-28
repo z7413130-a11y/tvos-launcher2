@@ -23,7 +23,6 @@ import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
@@ -61,7 +60,6 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private int currentGlowColor = 0xFF22222E;
     private float currentUiScale = 1.0f;
-    private boolean isInGridView = false; // Состояние перехода к сетке
 
     private final Map<String, Integer> fallbackBanners = new HashMap<>();
 
@@ -144,109 +142,6 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         setupDynamicGrid();
-    }
-
-    // Перехват нажатий пульта для мгновенного перехода между состояниями tvOS
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            View focused = getCurrentFocus();
-            if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN) {
-                if (isViewInDock(focused) && !isInGridView) {
-                    moveToGridView();
-                    return true;
-                }
-            } else if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_UP) {
-                if (isViewInFirstGridRow(focused) && isInGridView) {
-                    moveToDockView();
-                    return true;
-                }
-            }
-        }
-        return super.dispatchKeyEvent(event);
-    }
-
-    private boolean isViewInDock(View v) {
-        if (v == null || dockRecycler == null) return false;
-        View p = (View) v.getParent();
-        while (p != null) {
-            if (p == dockRecycler) return true;
-            p = (p.getParent() instanceof View) ? (View) p.getParent() : null;
-        }
-        return false;
-    }
-
-    private boolean isViewInFirstGridRow(View v) {
-        if (v == null || gridRecycler == null) return false;
-        RecyclerView.ViewHolder holder = gridRecycler.getChildViewHolder(v);
-        if (holder != null) {
-            int pos = holder.getAdapterPosition();
-            GridLayoutManager glm = (GridLayoutManager) gridRecycler.getLayoutManager();
-            int spanCount = glm != null ? glm.getSpanCount() : 6;
-            return pos >= 0 && pos < spanCount;
-        }
-        return false;
-    }
-
-    private void moveToGridView() {
-        isInGridView = true;
-        // 1. Плавно скрываем верхнюю панель
-        if (topStatusContainer != null) {
-            topStatusContainer.animate()
-                .alpha(0f)
-                .translationY(-dpToPx(30))
-                .setDuration(300)
-                .setInterpolator(new DecelerateInterpolator())
-                .start();
-        }
-        // 2. Скроллим к сетке
-        if (mainScrollView != null && dockContainer != null) {
-            int targetY = dockContainer.getTop() - dpToPx(24);
-            mainScrollView.smoothScrollTo(0, targetY);
-        }
-        // 3. Переводим фокус на первый элемент сетки
-        if (gridRecycler != null && gridRecycler.getAdapter() != null && gridRecycler.getAdapter().getItemCount() > 0) {
-            RecyclerView.ViewHolder firstHolder = gridRecycler.findViewHolderForAdapterPosition(0);
-            if (firstHolder != null) {
-                firstHolder.itemView.requestFocus();
-            } else {
-                gridRecycler.scrollToPosition(0);
-                gridRecycler.post(() -> {
-                    RecyclerView.ViewHolder h = gridRecycler.findViewHolderForAdapterPosition(0);
-                    if (h != null) h.itemView.requestFocus();
-                });
-            }
-        }
-    }
-
-    private void moveToDockView() {
-        isInGridView = false;
-        // 1. Плавно показываем верхнюю панель обратно
-        if (topStatusContainer != null) {
-            topStatusContainer.animate()
-                .alpha(1f)
-                .translationY(0)
-                .setDuration(300)
-                .setInterpolator(new DecelerateInterpolator())
-                .start();
-        }
-        // 2. Скроллим наверх к доку
-        if (mainScrollView != null) {
-            mainScrollView.smoothScrollTo(0, 0);
-        }
-        // 3. Возвращаем фокус на первый элемент дока
-        if (dockRecycler != null && dockRecycler.getAdapter() != null && dockRecycler.getAdapter().getItemCount() > 0) {
-            RecyclerView.ViewHolder firstHolder = dockRecycler.findViewHolderForAdapterPosition(0);
-            if (firstHolder != null) {
-                firstHolder.itemView.requestFocus();
-            } else {
-                dockRecycler.scrollToPosition(0);
-                dockRecycler.post(() -> {
-                    RecyclerView.ViewHolder h = dockRecycler.findViewHolderForAdapterPosition(0);
-                    if (h != null) h.itemView.requestFocus();
-                });
-            }
-        }
     }
 
     private float getUiScale() {
@@ -670,6 +565,9 @@ public class MainActivity extends Activity {
             });
 
             vh.root.setOnFocusChangeListener((v, hasFocus) -> {
+                ScrollView sv = findViewById(R.id.main_scroll_view);
+                View dockContainer = findViewById(R.id.dock_container);
+                
                 if (hasFocus) {
                     if (vh.scaleAnim != null) vh.scaleAnim.cancel();
                     vh.scaleAnim = new AnimatorSet();
@@ -693,11 +591,35 @@ public class MainActivity extends Activity {
                     vh.shimmerAnim.start();
 
                     if (isDock) {
+                        // Плавное скрытие верхней панели при переходе в сетку
+                        if (topStatusContainer != null) {
+                            topStatusContainer.animate()
+                                .alpha(0f)
+                                .translationY(-dpToPx(30))
+                                .setDuration(300)
+                                .setInterpolator(new DecelerateInterpolator())
+                                .start();
+                        }
                         if (heroTitle != null) {
                             heroTitle.animate().alpha(1f).setDuration(200).start();
                             heroTitle.setText(item.label);
                         }
                     } else {
+                        // Автоматическое залипание дока к верху при переходе в сетку
+                        if (sv != null && dockContainer != null) {
+                            int targetY = dockContainer.getTop() - dpToPx(24);
+                            if (sv.getScrollY() < targetY - dpToPx(30)) {
+                                sv.smoothScrollTo(0, targetY);
+                            }
+                        }
+                        if (topStatusContainer != null) {
+                            topStatusContainer.animate()
+                                .alpha(0f)
+                                .translationY(-dpToPx(30))
+                                .setDuration(300)
+                                .setInterpolator(new DecelerateInterpolator())
+                                .start();
+                        }
                         if (heroTitle != null) {
                             heroTitle.animate().alpha(0f).setDuration(200).start();
                         }
@@ -719,6 +641,16 @@ public class MainActivity extends Activity {
                     
                     if (!isDock) {
                         vh.localLabel.animate().alpha(0f).setDuration(200).start();
+                    } else {
+                        // Возврат верхней панели при уходе из дока наверх
+                        if (topStatusContainer != null) {
+                            topStatusContainer.animate()
+                                .alpha(1f)
+                                .translationY(0)
+                                .setDuration(300)
+                                .setInterpolator(new DecelerateInterpolator())
+                                .start();
+                        }
                     }
                 }
             });
