@@ -33,9 +33,12 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends Activity {
 
@@ -49,6 +52,9 @@ public class MainActivity extends Activity {
     private final List<AppItem> gridApps = new ArrayList<>();
     private SharedPreferences prefs;
     private int currentGlowColor = 0xFF22222E;
+
+    // ГЛОБАЛЬНЫЙ СПРАВОЧНИК кастомных баннеров для fallback-подмены
+    private final Map<String, Integer> fallbackBanners = new HashMap<>();
 
     public static class AppItem {
         public String packageName;
@@ -72,6 +78,12 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
+
+        // Инициализация справочника (ключ - часть имени пакета, значение - ресурс баннера)
+        fallbackBanners.put("youtube", R.drawable.banner_youtube);
+        fallbackBanners.put("kinopoisk", R.drawable.banner_kinopoisk);
+        fallbackBanners.put("vk.video", R.drawable.banner_vk);
+        fallbackBanners.put("vk.tv", R.drawable.banner_vk);
 
         heroTitle = findViewById(R.id.hero_title);
         ambientGlowBg = findViewById(R.id.ambient_glow_bg);
@@ -161,42 +173,57 @@ public class MainActivity extends Activity {
 
     private void loadInstalledApps() {
         PackageManager pm = getPackageManager();
-        Intent intent = new Intent(Intent.ACTION_MAIN, null);
-        intent.addCategory(Intent.CATEGORY_LAUNCHER);
-        List<ResolveInfo> availableActivities = pm.queryIntentActivities(intent, 0);
+        
+        // Умный сборщик: сначала собираем ТВ-версии, потом дополняем мобильными
+        Map<String, ResolveInfo> uniqueApps = new HashMap<>();
+
+        // 1. Ищем ТВ-приложения (LEANBACK_LAUNCHER - там лежат официальные баннеры 16:9)
+        Intent leanbackIntent = new Intent(Intent.ACTION_MAIN, null);
+        leanbackIntent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+        for (ResolveInfo ri : pm.queryIntentActivities(leanbackIntent, 0)) {
+            uniqueApps.put(ri.activityInfo.packageName, ri);
+        }
+
+        // 2. Ищем мобильные приложения (LAUNCHER) и добавляем только те, которых нет в ТВ-списке
+        Intent launcherIntent = new Intent(Intent.ACTION_MAIN, null);
+        launcherIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+        for (ResolveInfo ri : pm.queryIntentActivities(launcherIntent, 0)) {
+            if (!uniqueApps.containsKey(ri.activityInfo.packageName)) {
+                uniqueApps.put(ri.activityInfo.packageName, ri);
+            }
+        }
 
         List<AppItem> allApps = new ArrayList<>();
-        for (ResolveInfo ri : availableActivities) {
-            if (!ri.activityInfo.packageName.equals(getPackageName())) {
-                String pkg = ri.activityInfo.packageName;
-                String label = ri.loadLabel(pm).toString();
-                Drawable icon = ri.loadIcon(pm);
-                int domColor = extractDominantColor(icon);
-                
-                Drawable banner = null;
-                
-                // Приоритет 2: Кастомные баннеры лаунчера для популярных сервисов
-                if (pkg.contains("youtube")) {
-                    banner = getDrawable(R.drawable.banner_youtube);
-                } else if (pkg.contains("kinopoisk")) {
-                    banner = getDrawable(R.drawable.banner_kinopoisk);
-                } else if (pkg.contains("vk.video") || pkg.equals("com.vk.tv")) {
-                    banner = getDrawable(R.drawable.banner_vk);
-                }
-                
-                // Приоритет 1: Официальный ТВ-баннер от разработчиков приложения
-                if (banner == null) {
-                    try {
-                        if (ri.activityInfo.banner != 0) {
-                            banner = pm.getDrawable(pkg, ri.activityInfo.banner, ri.activityInfo.applicationInfo);
-                        } else if (ri.activityInfo.applicationInfo != null && ri.activityInfo.applicationInfo.banner != 0) {
-                            banner = pm.getDrawable(pkg, ri.activityInfo.applicationInfo.banner, ri.activityInfo.applicationInfo);
-                        }
-                    } catch (Exception ignored) {}
-                }
+        
+        for (ResolveInfo ri : uniqueApps.values()) {
+            if (ri.activityInfo.packageName.equals(getPackageName())) continue;
 
-                allApps.add(new AppItem(pkg, label, icon, banner, domColor));
+            String pkg = ri.activityInfo.packageName;
+            String label = ri.loadLabel(pm).toString();
+            Drawable icon = ri.loadIcon(pm);
+            int domColor = extractDominantColor(icon);
+            
+            Drawable banner = null;
+
+            // ПРИОРИТЕТ 1: Вытягиваем официальный ТВ-баннер из манифеста приложения
+            try {
+                banner = ri.activityInfo.loadBanner(pm);
+                if (banner == null && ri.activityInfo.applicationInfo != null) {
+                    banner = ri.activityInfo.applicationInfo.loadBanner(pm);
+                }
+            } catch (Exception ignored) {}
+
+            // ПРИОРИТЕТ 2: Если официального баннера нет, ищем в нашем справочнике
+            if (banner == null) {
+                for (Map.Entry<String, Integer> entry : fallbackBanners.entrySet()) {
+                    if (pkg.contains(entry.getKey())) {
+                        banner = getDrawable(entry.getValue());
+                        break;
+                    }
+                }
             }
+
+            allApps.add(new AppItem(pkg, label, icon, banner, domColor));
         }
 
         Collections.sort(allApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
@@ -249,7 +276,6 @@ public class MainActivity extends Activity {
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             FrameLayout card = new FrameLayout(parent.getContext());
             
-            // Строгое соотношение 16:9
             int width = dpToPx(144);
             int height = dpToPx(81);
             
@@ -270,19 +296,17 @@ public class MainActivity extends Activity {
             });
             card.setClipToOutline(true);
 
-            // Слой 1: Фон (либо ТВ-баннер, либо сгенерированный градиент)
             ImageView bgImage = new ImageView(parent.getContext());
             bgImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
             bgImage.setTag("bg_image");
             card.addView(bgImage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-            // Слой 2: Мобильная иконка (показывается только если нет ТВ-баннера)
             ImageView iconImage = new ImageView(parent.getContext());
             iconImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
             iconImage.setTag("icon_image");
-            card.addView(iconImage, new FrameLayout.LayoutParams(dpToPx(46), dpToPx(46), Gravity.CENTER));
+            // Сделали иконку чуть крупнее (56dp) для премиального вида на фоне 16:9
+            card.addView(iconImage, new FrameLayout.LayoutParams(dpToPx(56), dpToPx(56), Gravity.CENTER));
 
-            // Слой 3: Звездочка избранного
             TextView starBadge = new TextView(parent.getContext());
             starBadge.setText("⭐");
             starBadge.setTextSize(12f);
@@ -303,17 +327,21 @@ public class MainActivity extends Activity {
             ImageView iconImage = (ImageView) card.findViewWithTag("icon_image");
             TextView starBadge = (TextView) card.findViewWithTag("fav_star");
 
-            int baseColor = item.dominantColor;
-            int darkColor = Color.rgb((int)(Color.red(baseColor) * 0.4f), (int)(Color.green(baseColor) * 0.4f), (int)(Color.blue(baseColor) * 0.4f));
-
             if (item.banner != null) {
-                // Если есть официальный или кастомный баннер
+                // Если есть ТВ-баннер (Официальный или Кастомный)
                 bgImage.setImageDrawable(item.banner);
                 iconImage.setVisibility(View.GONE);
             } else {
-                // Приоритет 3: Автогенератор 16:9
-                GradientDrawable gradient = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{baseColor, darkColor});
+                // ПРИОРИТЕТ 3: Автогенератор 16:9 (для мобильных приложений)
+                int baseColor = item.dominantColor;
+                // Затемняем доминирующий цвет для градиента
+                int darkColor = Color.rgb((int)(Color.red(baseColor) * 0.25f), (int)(Color.green(baseColor) * 0.25f), (int)(Color.blue(baseColor) * 0.25f));
+                
+                // Стильный диагональный градиент
+                GradientDrawable gradient = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{baseColor, darkColor});
                 bgImage.setImageDrawable(gradient);
+                
+                // Иконка строго по центру
                 iconImage.setImageDrawable(item.icon);
                 iconImage.setVisibility(View.VISIBLE);
             }
@@ -369,15 +397,15 @@ public class MainActivity extends Activity {
 
             card.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
-                    // Плавное увеличение на ~10% (scale 1.1) и глубокая тень
                     animateScale(card, 1.10f, 1.10f, dpToPx(30));
-                    animateAmbientGlow(baseColor);
+                    animateAmbientGlow(item.dominantColor);
                     if (heroTitle != null) heroTitle.setText(item.label);
                 } else {
                     animateScale(card, 1.0f, 1.0f, 0f);
                 }
             });
 
+            // Обработчик нажатия тоже улучшен: ищем Leanback Intent, если его нет - берем мобильный
             card.setOnClickListener(v -> {
                 PackageManager pm = getPackageManager();
                 Intent launch = pm.getLeanbackLaunchIntentForPackage(item.packageName);
