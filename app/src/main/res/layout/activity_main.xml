@@ -34,10 +34,10 @@
             android:orientation="vertical"
             android:paddingBottom="120dp">
 
-            <!-- Отступ, который опускает док -->
+            <!-- Отступ увеличен до 350dp (док опущен на ~8%) -->
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="320dp" />
+                android:layout_height="350dp" />
 
             <!-- ГЛАВНЫЙ ДОК -->
             <LinearLayout
@@ -66,10 +66,10 @@
                 </FrameLayout>
             </LinearLayout>
 
-            <!-- Увеличенный отступ, чтобы сетка пряталась ниже (было 36dp, стало 100dp) -->
+            <!-- Отступ уменьшен до 65dp (сетка поднята на ~9%) -->
             <Space
                 android:layout_width="match_parent"
-                android:layout_height="100dp" />
+                android:layout_height="65dp" />
 
             <!-- СЕТКА ВСЕХ ПРИЛОЖЕНИЙ -->
             <androidx.recyclerview.widget.RecyclerView
