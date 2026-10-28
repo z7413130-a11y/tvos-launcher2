@@ -24,6 +24,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -76,7 +77,7 @@ public class MainActivity extends Activity {
         gridRecycler = findViewById(R.id.grid_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
         
-        // Включаем аппаратную обрезку для идеального скругления краев дока
+        // Аппаратная обрезка для идеального закругления дока по краям (радиус 36dp)
         FrameLayout dockContainer = findViewById(R.id.dock_container);
         if (dockContainer != null) {
             dockContainer.setOutlineProvider(new ViewOutlineProvider() {
@@ -98,7 +99,6 @@ public class MainActivity extends Activity {
         }
 
         if (gridRecycler != null) {
-            // Строго 4 колонки в нижней сетке, как просили
             gridRecycler.setLayoutManager(new GridLayoutManager(this, 4));
             gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false));
         }
@@ -184,7 +184,7 @@ public class MainActivity extends Activity {
         Collections.sort(allApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
 
         gridApps.clear();
-        gridApps.addAll(allApps); // Внизу теперь абсолютно все приложения
+        gridApps.addAll(allApps);
 
         dockApps.clear();
         String favs = prefs.getString("favorites", "");
@@ -243,8 +243,6 @@ public class MainActivity extends Activity {
             int height = dpToPx(82);
             
             ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height);
-            
-            // Сохранены идеальные отступы без изменений!
             int marginX = isDock ? dpToPx(10) : dpToPx(38);
             int marginY = isDock ? dpToPx(10) : dpToPx(30);
             
@@ -261,9 +259,23 @@ public class MainActivity extends Activity {
             });
             card.setClipToOutline(true);
 
+            // Основная иконка приложения
             ImageView iv = new ImageView(parent.getContext());
             iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
             card.addView(iv, new FrameLayout.LayoutParams(dpToPx(50), dpToPx(50), Gravity.CENTER));
+
+            // Звездочка индикатора избранного (изначально скрыта)
+            TextView starBadge = new TextView(parent.getContext());
+            starBadge.setText("⭐");
+            starBadge.setTextSize(12f);
+            FrameLayout.LayoutParams starLp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, 
+                Gravity.TOP | Gravity.END
+            );
+            starLp.setMargins(0, dpToPx(4), dpToPx(6), 0);
+            starBadge.setLayoutParams(starLp);
+            starBadge.setTag("fav_star"); // Метка, чтобы быстро находить звездочку в коде
+            card.addView(starBadge);
 
             return new RecyclerView.ViewHolder(card) {};
         }
@@ -273,6 +285,7 @@ public class MainActivity extends Activity {
             AppItem item = items.get(position);
             FrameLayout card = (FrameLayout) holder.itemView;
             ImageView iv = (ImageView) card.getChildAt(0);
+            TextView starBadge = (TextView) card.findViewWithTag("fav_star");
 
             iv.setImageDrawable(item.icon);
 
@@ -287,33 +300,78 @@ public class MainActivity extends Activity {
             cardBg.setCornerRadius(dpToPx(18));
             card.setBackground(cardBg);
 
-            // Обработка долгого нажатия для системы Избранного
+            // Логика отображения звездочки: только в сетке и только если приложение есть в доке
+            boolean isFav = false;
+            for (AppItem a : dockApps) {
+                if (a.packageName.equals(item.packageName)) {
+                    isFav = true;
+                    break;
+                }
+            }
+
+            if (!isDock && isFav) {
+                starBadge.setAlpha(1f);
+                starBadge.setScaleX(1f);
+                starBadge.setScaleY(1f);
+            } else {
+                starBadge.setAlpha(0f);
+                starBadge.setScaleX(0f);
+                starBadge.setScaleY(0f);
+            }
+
+            // Обработка зажатия кнопки (Добавление / Удаление)
             card.setOnLongClickListener(v -> {
                 if (!isDock) {
-                    boolean exists = false;
+                    AppItem favItem = null;
                     for (AppItem a : dockApps) {
                         if (a.packageName.equals(item.packageName)) {
-                            exists = true;
+                            favItem = a;
                             break;
                         }
                     }
-                    if (!exists) {
+                    if (favItem == null) {
+                        // ДОБАВИТЬ В ИЗБРАННОЕ
                         dockApps.add(item);
                         saveFavorites();
+                        
+                        // Красивая плавная анимация появления звездочки с отскоком
+                        starBadge.animate().alpha(1f).scaleX(1f).scaleY(1f)
+                            .setDuration(300).setInterpolator(new OvershootInterpolator()).start();
+                        
                         if (dockRecycler != null && dockRecycler.getAdapter() != null) {
                             dockRecycler.getAdapter().notifyItemInserted(dockApps.size() - 1);
                             dockRecycler.smoothScrollToPosition(dockApps.size() - 1);
                         }
+                    } else {
+                        // УБРАТЬ ИЗ ИЗБРАННОГО (если зажали иконку со звездочкой в сетке)
+                        int pos = dockApps.indexOf(favItem);
+                        if (pos >= 0) {
+                            dockApps.remove(pos);
+                            saveFavorites();
+                            
+                            // Анимация исчезновения
+                            starBadge.animate().alpha(0f).scaleX(0f).scaleY(0f).setDuration(200).start();
+                            
+                            if (dockRecycler != null && dockRecycler.getAdapter() != null) {
+                                dockRecycler.getAdapter().notifyItemRemoved(pos);
+                            }
+                        }
                     }
                 } else {
+                    // Удалить из избранного (если зажали иконку прямо внутри дока)
                     int pos = dockApps.indexOf(item);
                     if (pos >= 0) {
                         dockApps.remove(pos);
                         saveFavorites();
                         notifyItemRemoved(pos);
+                        
+                        // Оповещаем сетку внизу, чтобы у соответствующего приложения исчезла звездочка
+                        if (gridRecycler != null && gridRecycler.getAdapter() != null) {
+                            gridRecycler.getAdapter().notifyDataSetChanged();
+                        }
                     }
                 }
-                return true; // Ивент обработан
+                return true;
             });
 
             card.setOnFocusChangeListener((v, hasFocus) -> {

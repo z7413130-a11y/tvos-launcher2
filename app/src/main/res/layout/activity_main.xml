@@ -31,12 +31,11 @@
             android:orientation="vertical"
             android:paddingBottom="120dp">
 
-            <!-- Высота верхнего дока зафиксирована -->
             <Space
                 android:layout_width="match_parent"
                 android:layout_height="350dp" />
 
-            <!-- ГЛАВНЫЙ ДОК -->
+            <!-- ГЛАВНЫЙ ДОК (ИЗБРАННОЕ) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -44,33 +43,30 @@
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
-                <!-- ID добавлен для применения аппаратной маски закруглений в Java -->
+                <!-- ФИКСИРОВАННЫЙ РАЗМЕР: ширина match_parent и высота 125dp, чтобы не сжимался -->
                 <FrameLayout
                     android:id="@+id/dock_container"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="125dp"
                     android:layout_marginHorizontal="32dp"
                     android:background="@drawable/glass_dock_bg"
-                    android:paddingHorizontal="24dp"
-                    android:paddingVertical="14dp"
                     android:clipToOutline="true"
                     android:clipChildren="true"
                     android:clipToPadding="false">
 
-                    <!-- minHeight и minWidth не дадут доку схлопнуться, если избранного еще нет -->
+                    <!-- padding перенесен сюда. Иконки будут заезжать за скругленные углы FrameLayout -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/dock_recycler"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minHeight="102dp"
-                        android:minWidth="158dp"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:paddingHorizontal="24dp"
+                        android:paddingVertical="10dp"
                         android:clipChildren="false"
                         android:clipToPadding="false"
                         android:orientation="horizontal" />
                 </FrameLayout>
             </LinearLayout>
 
-            <!-- Высота нижней сетки зафиксирована -->
             <Space
                 android:layout_width="match_parent"
                 android:layout_height="25dp" />
