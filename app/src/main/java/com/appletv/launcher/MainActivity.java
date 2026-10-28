@@ -146,20 +146,8 @@ public class MainActivity extends Activity {
         int cardWidthPx = itemCellWidthPx - (itemMarginPx * 2);
         int cardHeightPx = (int) (cardWidthPx * (9f / 16f)); 
 
-        // === ИСПРАВЛЕНИЕ ОБРЕЗКИ ИКОНОК ===
-        // Математически вычисляем ИДЕАЛЬНУЮ высоту дока и жестко фиксируем её
-        FrameLayout dockContainer = findViewById(R.id.dock_container);
-        if (dockContainer != null) {
-            int dockPaddingY = dpToPx((int)(20 * currentUiScale)); // 10dp padding сверху и снизу (в сумме 20)
-            int totalDockHeight = cardHeightPx + (itemMarginPx * 2) + dockPaddingY;
-            
-            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) dockContainer.getLayoutParams();
-            params.height = totalDockHeight;
-            dockContainer.setLayoutParams(params);
-            
-            // Принудительно заставляем маску обновиться под этот новый размер
-            dockContainer.invalidateOutline();
-        }
+        // Математика удаления высоты дока убрана! 
+        // Док снова подстраивается сам и остается широким за счет minHeight в XML.
 
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
         gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, cardWidthPx, cardHeightPx, itemMarginPx));
