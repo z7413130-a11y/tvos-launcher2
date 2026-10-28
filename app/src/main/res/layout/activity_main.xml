@@ -43,20 +43,18 @@
                 android:clipChildren="false"
                 android:clipToPadding="false">
 
-                <!-- Добавили paddingVertical="18dp", чтобы создать симметричный запас под анимацию увеличения -->
+                <!-- Снимаем clipToOutline/clipChildren, чтобы подсветка карточек внутри дока никогда не обрезалась -->
                 <FrameLayout
                     android:id="@+id/dock_container"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:minHeight="125dp"
+                    android:minHeight="135dp"
                     android:layout_marginHorizontal="48dp"
                     android:paddingVertical="18dp"
                     android:background="@drawable/glass_dock_bg"
-                    android:clipToOutline="true"
-                    android:clipChildren="true"
+                    android:clipChildren="false"
                     android:clipToPadding="false">
 
-                    <!-- Изменили на wrap_content и layout_gravity="center" для идеального выравнивания -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/dock_recycler"
                         android:layout_width="match_parent"

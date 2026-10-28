@@ -94,12 +94,6 @@ public class MainActivity extends Activity {
         btnSettings = findViewById(R.id.btn_launcher_settings);
         
         FrameLayout dockContainer = findViewById(R.id.dock_container);
-        if (dockContainer != null) {
-            dockContainer.setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(36));
-                }
             });
             dockContainer.setClipToOutline(true);
         }
