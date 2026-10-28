@@ -20,7 +20,6 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
-import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
@@ -28,7 +27,6 @@ import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -42,8 +40,6 @@ public class MainActivity extends Activity {
 
     private TextView heroTitle;
     private View ambientGlowBg;
-    private LinearLayout dockContainerLayout;
-    private RelativeLayout gridContainer;
     private RecyclerView dockRecycler;
     private RecyclerView gridRecycler;
     private FrameLayout btnSettings;
@@ -52,7 +48,6 @@ public class MainActivity extends Activity {
     private final List<AppItem> gridApps = new ArrayList<>();
     private SharedPreferences prefs;
     private int currentGlowColor = 0xFF22222E;
-    private boolean isGridViewActive = false;
 
     public static class AppItem {
         public String packageName;
@@ -77,8 +72,6 @@ public class MainActivity extends Activity {
 
         heroTitle = findViewById(R.id.hero_title);
         ambientGlowBg = findViewById(R.id.ambient_glow_bg);
-        dockContainerLayout = findViewById(R.id.dock_container_layout);
-        gridContainer = findViewById(R.id.grid_container);
         dockRecycler = findViewById(R.id.dock_recycler);
         gridRecycler = findViewById(R.id.grid_recycler);
         btnSettings = findViewById(R.id.btn_launcher_settings);
@@ -106,53 +99,6 @@ public class MainActivity extends Activity {
         }
 
         loadInstalledApps();
-    }
-
-    @Override
-    public boolean dispatchKeyEvent(KeyEvent event) {
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            int keyCode = event.getKeyCode();
-            if (!isGridViewActive && (keyCode == KeyEvent.KEYCODE_DPAD_DOWN || keyCode == KeyEvent.KEYCODE_CHANNEL_DOWN)) {
-                showGridView();
-                if (gridRecycler != null && gridRecycler.getChildCount() > 0) {
-                    gridRecycler.getChildAt(0).requestFocus();
-                }
-                return true;
-            } else if (isGridViewActive && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                View focusedChild = gridRecycler.getFocusedChild();
-                int pos = focusedChild != null ? gridRecycler.getChildAdapterPosition(focusedChild) : -1;
-                if (pos >= 0 && pos < 6) {
-                    hideGridView();
-                    if (dockRecycler != null && dockRecycler.getChildCount() > 0) {
-                        dockRecycler.getChildAt(0).requestFocus();
-                    }
-                    return true;
-                }
-            }
-        }
-        return super.dispatchKeyEvent(event);
-    }
-
-    private void showGridView() {
-        isGridViewActive = true;
-        if (gridContainer != null) {
-            gridContainer.setVisibility(View.VISIBLE);
-            gridContainer.animate().alpha(1f).translationY(0f).setDuration(220).setInterpolator(new DecelerateInterpolator()).start();
-        }
-        if (dockContainerLayout != null) {
-            dockContainerLayout.animate().alpha(0f).translationY(50f).setDuration(180).withEndAction(() -> dockContainerLayout.setVisibility(View.GONE)).start();
-        }
-    }
-
-    private void hideGridView() {
-        isGridViewActive = false;
-        if (dockContainerLayout != null) {
-            dockContainerLayout.setVisibility(View.VISIBLE);
-            dockContainerLayout.animate().alpha(1f).translationY(0f).setDuration(220).setInterpolator(new DecelerateInterpolator()).start();
-        }
-        if (gridContainer != null) {
-            gridContainer.animate().alpha(0f).translationY(50f).setDuration(180).withEndAction(() -> gridContainer.setVisibility(View.GONE)).start();
-        }
     }
 
     private int dpToPx(int dp) {

@@ -6,71 +6,91 @@
     android:clipChildren="false"
     android:clipToPadding="false">
 
-    <!-- Динамическая подсветка Ambient Glow -->
+    <!-- Динамическое свечение -->
     <View
         android:id="@+id/ambient_glow_bg"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:alpha="0.35" />
 
-    <!-- Верхний градиент -->
+    <!-- Фоновый градиент экрана -->
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/hero_gradient_overlay" />
 
-    <!-- КОНТЕЙНЕР НИЖНЕЙ СЕТКИ ПРИЛОЖЕНИЙ -->
-    <RelativeLayout
-        android:id="@+id/grid_container"
+    <!-- ЕДИНЫЙ СКРОЛЛ ВСЕГО ЭКРАНА (Никаких переключений, всё нативно) -->
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="160dp"
         android:clipChildren="false"
         android:clipToPadding="false"
-        android:visibility="invisible"
-        android:alpha="0">
+        android:scrollbars="none">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/grid_recycler"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipChildren="false"
-            android:clipToPadding="false"
-            android:paddingHorizontal="64dp"
-            android:paddingBottom="40dp" />
-    </RelativeLayout>
-
-    <!-- ГЛАВНЫЙ ДОК (Опущен ниже к нижней границе экрана) -->
-    <LinearLayout
-        android:id="@+id/dock_container_layout"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_marginBottom="75dp"
-        android:gravity="center"
-        android:clipChildren="false"
-        android:clipToPadding="false">
-
-        <FrameLayout
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/glass_dock_bg"
-            android:paddingHorizontal="24dp"
-            android:paddingVertical="14dp"
             android:clipChildren="false"
-            android:clipToPadding="false">
+            android:orientation="vertical"
+            android:paddingBottom="120dp">
 
+            <!-- Отступ, который опускает док и оставляет нижнюю сетку слегка видимой -->
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="320dp" />
+
+            <!-- ГЛАВНЫЙ ДОК -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:clipChildren="false"
+                android:clipToPadding="false">
+
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/glass_dock_bg"
+                    android:paddingHorizontal="24dp"
+                    android:paddingVertical="14dp"
+                    android:clipChildren="false"
+                    android:clipToPadding="false">
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/dock_recycler"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:clipChildren="false"
+                        android:clipToPadding="false"
+                        android:orientation="horizontal" />
+                </FrameLayout>
+            </LinearLayout>
+
+            <!-- Отступ между доком и сеткой -->
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="36dp" />
+
+            <!-- СЕТКА ПРИЛОЖЕНИЙ (Верхушки первого ряда будут торчать на экране) -->
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/dock_recycler"
-                android:layout_width="wrap_content"
+                android:id="@+id/grid_recycler"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:clipChildren="false"
                 android:clipToPadding="false"
-                android:orientation="horizontal" />
-        </FrameLayout>
-    </LinearLayout>
+                android:nestedScrollingEnabled="false"
+                android:paddingHorizontal="64dp" />
 
-    <!-- ВЕРХНЯЯ СТАТИЧНАЯ ПАНЕЛЬ -->
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- ВЕРХНЯЯ ГРАДИЕНТНАЯ МАСКА (Чтобы док растворялся, уходя вверх за часы и заголовок) -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:background="@drawable/top_fade_gradient" />
+
+    <!-- СТАТИЧНЫЙ ЗАГОЛОВОК И ЧАСЫ (Всегда поверх всего) -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="80dp"
