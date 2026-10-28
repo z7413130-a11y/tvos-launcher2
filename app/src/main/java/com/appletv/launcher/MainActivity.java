@@ -86,7 +86,6 @@ public class MainActivity extends Activity {
         }
 
         if (gridRecycler != null) {
-            // Оставляем 6 колонок, адаптер раздвинет элементы сам
             gridRecycler.setLayoutManager(new GridLayoutManager(this, 6));
             gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false));
         }
@@ -215,9 +214,9 @@ public class MainActivity extends Activity {
             
             ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(width, height);
             
-            // Если это верхний док - отступы стандартные. Если нижняя сетка - отступы увеличены в 2.5 раза
-            int marginX = isDock ? dpToPx(10) : dpToPx(25);
-            int marginY = isDock ? dpToPx(10) : dpToPx(25);
+            // Расширяем расстояние по бокам (X) для сетки, но вертикальное (Y) оставляем 10dp
+            int marginX = isDock ? dpToPx(10) : dpToPx(35);
+            int marginY = dpToPx(10);
             
             lp.setMargins(marginX, marginY, marginX, marginY);
             card.setLayoutParams(lp);
