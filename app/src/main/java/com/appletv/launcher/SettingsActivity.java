@@ -58,6 +58,7 @@ public class SettingsActivity extends Activity {
         requestFirstFocus();
     }
 
+    // --- 1. ОСНОВНЫЕ ---
     private void loadGeneralMenu() {
         currentState = MenuState.GENERAL;
         titleView.setText("Основные");
@@ -111,6 +112,7 @@ public class SettingsActivity extends Activity {
         requestFirstFocus();
     }
 
+    // --- 2. ОФОРМЛЕНИЕ ---
     private void loadAppearanceMenu() {
         currentState = MenuState.APPEARANCE;
         titleView.setText("Оформление");
@@ -181,6 +183,7 @@ public class SettingsActivity extends Activity {
         requestFirstFocus();
     }
 
+    // --- 3. ГЛАВНЫЙ ЭКРАН ---
     private void loadHomeMenu() {
         currentState = MenuState.HOME;
         titleView.setText("Главный экран");
@@ -228,28 +231,42 @@ public class SettingsActivity extends Activity {
         requestFirstFocus();
     }
 
+    // --- 4. СИСТЕМА (вернули исходный вид с переходом в параметры системы) ---
     private void loadSystemMenu() {
         currentState = MenuState.SYSTEM;
         titleView.setText("Система");
         listContainer.removeAllViews();
         dynamicLeftIcon.setImageResource(R.drawable.ic_panel_system);
 
-        addItem("Информация о системе", "Android TV Core", R.drawable.ic_panel_system, null, false);
-        
+        addItem("Настройки Android TV", "", R.drawable.ic_panel_system, () -> {
+            try {
+                startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
+            } catch (Exception e) {}
+        }, true);
+        addItem("Язык", "", R.drawable.ic_panel_system, () -> {
+            try {
+                startActivity(new Intent(android.provider.Settings.ACTION_LOCALE_SETTINGS));
+            } catch (Exception e) {}
+        }, true);
+
         requestFirstFocus();
     }
 
+    // --- 5. О ЛАУНЧЕРЕ (вернули исходную информационную карточку) ---
     private void loadAboutMenu() {
         currentState = MenuState.ABOUT;
         titleView.setText("О лаунчере");
         listContainer.removeAllViews();
         dynamicLeftIcon.setImageResource(R.drawable.ic_panel_info);
 
-        addItem("Версия", "1.0 Apple TV Edition", R.drawable.ic_panel_info, null, false);
-        addItem("Разработчик", "iEFART", R.drawable.ic_panel_info, null, false);
+        addItem("Версия лаунчера: 1.0", "", R.drawable.ic_panel_info, null, false);
+        addItem("Сборка: Apple TV Edition", "", R.drawable.ic_panel_info, null, false);
+        addItem("Разработчик: iEFART", "", R.drawable.ic_panel_info, null, false);
 
         requestFirstFocus();
     }
+
+    // --- ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ---
 
     private void requestFirstFocus() {
         listContainer.post(() -> {
