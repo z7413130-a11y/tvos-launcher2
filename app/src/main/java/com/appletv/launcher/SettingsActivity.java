@@ -22,7 +22,7 @@ public class SettingsActivity extends Activity {
     private TextView titleView;
     private SharedPreferences prefs;
 
-    private enum MenuState { MAIN, GENERAL, APPEARANCE, HOME, SYSTEM, ABOUT, THEME_OPTIONS, SLEEP_OPTIONS }
+    private enum MenuState { MAIN, GENERAL, APPEARANCE, HOME, SYSTEM, ABOUT, SLEEP_OPTIONS }
     private MenuState currentState = MenuState.MAIN;
 
     @Override
@@ -121,63 +121,21 @@ public class SettingsActivity extends Activity {
         requestFirstFocus();
     }
 
-    // --- БЛОК 2: ОФОРМЛЕНИЕ (Без масштаба, с темами и Glow) ---
+    // --- БЛОК 2: ОФОРМЛЕНИЕ (Статичное) ---
     private void loadAppearanceMenu() {
         currentState = MenuState.APPEARANCE;
         titleView.setText("Оформление");
         listContainer.removeAllViews();
         dynamicLeftIcon.setImageResource(R.drawable.ic_panel_appearance);
 
-        // Окружающее свечение (Ambient Glow)
-        boolean glow = prefs.getBoolean("ambient_glow", true);
-        addItem("Окружающее свечение", glow ? "Вкл" : "Выкл", R.drawable.ic_panel_appearance, () -> {
-            prefs.edit().putBoolean("ambient_glow", !glow).apply();
-            loadAppearanceMenu();
-            showToast("Свечение изменено");
-        }, true);
-
-        // Тема (Light / Dark / Auto)
-        String theme = prefs.getString("theme_mode", "dark");
-        String themeLabel = "Темная";
-        if (theme.equals("light")) themeLabel = "Светлая";
-        else if (theme.equals("auto")) themeLabel = "Авто";
-
-        addItem("Тема", themeLabel, R.drawable.ic_panel_appearance, this::loadThemeOptionsMenu, true);
-
-        requestFirstFocus();
-    }
-
-    private void loadThemeOptionsMenu() {
-        currentState = MenuState.THEME_OPTIONS;
-        titleView.setText("Выбор темы");
-        listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_appearance);
-
-        String currentTheme = prefs.getString("theme_mode", "dark");
-
-        addItem("Темная", currentTheme.equals("dark") ? "✓" : "", R.drawable.ic_panel_appearance, () -> {
-            prefs.edit().putString("theme_mode", "dark").apply();
-            loadThemeOptionsMenu();
-            showToast("Установлена темная тема");
-        }, false);
-
-        addItem("Светлая", currentTheme.equals("light") ? "✓" : "", R.drawable.ic_panel_appearance, () -> {
-            prefs.edit().putString("theme_mode", "light").apply();
-            loadThemeOptionsMenu();
-            showToast("Установлена светлая тема");
-        }, false);
-
-        addItem("Авто (по времени)", currentTheme.equals("auto") ? "✓" : "", R.drawable.ic_panel_appearance, () -> {
-            prefs.edit().putString("theme_mode", "auto").apply();
-            loadThemeOptionsMenu();
-            showToast("Установлен авто-режим темы");
-        }, false);
+        // Показываем, что эти параметры фиксированы дизайном
+        addItem("Тема лаунчера", "Темная", R.drawable.ic_panel_appearance, null, false);
+        addItem("Динамическая подсветка", "Всегда вкл", R.drawable.ic_panel_appearance, null, false);
 
         requestFirstFocus();
     }
 
     // --- ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ---
-
     private void requestFirstFocus() {
         listContainer.post(() -> {
             if (listContainer.getChildCount() > 0) listContainer.getChildAt(0).requestFocus();
@@ -263,7 +221,7 @@ public class SettingsActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (currentState == MenuState.THEME_OPTIONS || currentState == MenuState.SLEEP_OPTIONS || currentState == MenuState.GENERAL || currentState == MenuState.APPEARANCE) {
+        if (currentState == MenuState.SLEEP_OPTIONS || currentState == MenuState.GENERAL || currentState == MenuState.APPEARANCE) {
             loadMainMenu();
         } else if (currentState != MenuState.MAIN) {
             loadMainMenu();
