@@ -1,4 +1,4 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#33FFFFFF"/> <!-- Полупрозрачный светлый фон -->
-    <corners android:radius="8dp"/> <!-- Уменьшили радиус -->
+    <solid android:color="#14FFFFFF"/> <!-- Очень легкая прозрачная заливка -->
+    <corners android:radius="6dp"/> <!-- Маленькое закругление для компактных строк -->
 </shape>

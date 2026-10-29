@@ -2,14 +2,14 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#050508"
+    android:background="#0A0A0C" <!-- Почти черный фон -->
     android:orientation="horizontal"
     android:paddingTop="60dp"
     android:paddingBottom="60dp"
-    android:paddingStart="80dp"
-    android:paddingEnd="80dp">
+    android:paddingStart="100dp"
+    android:paddingEnd="100dp">
 
-    <!-- Левая панель с иконкой -->
+    <!-- Левая панель с иконкой (УМЕНЬШИЛИ РАЗМЕР!) -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
@@ -18,15 +18,15 @@
         android:orientation="vertical">
         
         <FrameLayout
-            android:layout_width="280dp"
-            android:layout_height="280dp"
+            android:layout_width="210dp" <!-- Было 280dp, стало 210dp -->
+            android:layout_height="210dp"
             android:background="@drawable/bg_settings_left_panel"
-            android:elevation="8dp">
+            android:elevation="0dp"> <!-- Убрали тень, в tvOS её тут нет -->
             
             <ImageView
                 android:id="@+id/dynamic_left_icon"
-                android:layout_width="140dp"
-                android:layout_height="140dp"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_panel_appearance" />
         </FrameLayout>
@@ -36,20 +36,20 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="1.5"
+        android:layout_weight="1.2"
         android:orientation="vertical"
-        android:paddingStart="40dp">
+        android:paddingStart="60dp">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Settings"
+            android:text="Настройки"
             android:textColor="#999999"
-            android:textSize="24sp"
+            android:textSize="22sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif"
             android:gravity="center_horizontal"
-            android:layout_marginBottom="24dp"/>
+            android:layout_marginBottom="20dp"/>
 
         <ScrollView
             android:layout_width="match_parent"
