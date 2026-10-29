@@ -1,6 +1,7 @@
 package com.appletv.launcher;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -11,10 +12,8 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -59,7 +58,6 @@ public class SettingsActivity extends Activity {
         requestFirstFocus();
     }
 
-    // --- 1. ОСНОВНЫЕ ---
     private void loadGeneralMenu() {
         currentState = MenuState.GENERAL;
         titleView.setText("Основные");
@@ -113,7 +111,6 @@ public class SettingsActivity extends Activity {
         requestFirstFocus();
     }
 
-    // --- 2. ОФОРМЛЕНИЕ ---
     private void loadAppearanceMenu() {
         currentState = MenuState.APPEARANCE;
         titleView.setText("Оформление");
@@ -184,7 +181,6 @@ public class SettingsActivity extends Activity {
         requestFirstFocus();
     }
 
-    // --- 3. ГЛАВНЫЙ ЭКРАН ---
     private void loadHomeMenu() {
         currentState = MenuState.HOME;
         titleView.setText("Главный экран");
@@ -232,7 +228,6 @@ public class SettingsActivity extends Activity {
         requestFirstFocus();
     }
 
-    // --- 4. СИСТЕМА ---
     private void loadSystemMenu() {
         currentState = MenuState.SYSTEM;
         titleView.setText("Система");
@@ -244,7 +239,6 @@ public class SettingsActivity extends Activity {
         requestFirstFocus();
     }
 
-    // --- 5. О ЛАУНЧЕРЕ ---
     private void loadAboutMenu() {
         currentState = MenuState.ABOUT;
         titleView.setText("О лаунчере");
@@ -256,8 +250,6 @@ public class SettingsActivity extends Activity {
 
         requestFirstFocus();
     }
-
-    // --- ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ---
 
     private void requestFirstFocus() {
         listContainer.post(() -> {
@@ -345,11 +337,11 @@ public class SettingsActivity extends Activity {
     @Override
     public void onBackPressed() {
         if (currentState == MenuState.SCALE_OPTIONS || currentState == MenuState.THEME_OPTIONS || currentState == MenuState.SLEEP_OPTIONS) {
-            loadAppearanceMenu(); // Возврат из подразделов оформления
+            loadAppearanceMenu();
         } else if (currentState == MenuState.HIDE_APPS) {
-            loadHomeMenu(); // Возврат из скрытия приложений
+            loadHomeMenu();
         } else if (currentState != MenuState.MAIN) {
-            loadMainMenu(); // Возврат в главный корень настроек
+            loadMainMenu();
         } else {
             super.onBackPressed();
         }
