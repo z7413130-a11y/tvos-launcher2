@@ -3,43 +3,48 @@ package com.appletv.launcher;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.view.View;
 import java.util.Calendar;
 
 public class ThemeManager {
-    
-    public static void applySettings(Activity activity) {
-        SharedPreferences prefs = activity.getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
-        
-        // --- 1. ЛОГИКА AMBIENT GLOW ---
-        boolean glow = prefs.getBoolean("ambient_glow", true);
-        // Ищем вьюшку свечения (по ID из твоих ресурсов)
-        int overlayId = activity.getResources().getIdentifier("hero_gradient_overlay", "id", activity.getPackageName());
-        if (overlayId != 0) {
-            View glowView = activity.findViewById(overlayId);
-            if (glowView != null) {
-                glowView.setVisibility(glow ? View.VISIBLE : View.GONE);
-            }
-        }
 
-        // --- 2. ЛОГИКА ТЕМ (Авто / Светлая / Темная) ---
+    // Применяем белый/черный фон и красим Док-бар
+    public static void applyThemeToMainActivity(Activity activity) {
+        SharedPreferences prefs = activity.getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
         String theme = prefs.getString("theme_mode", "dark");
-        boolean isLight = false;
         
+        boolean isLight = false;
         if (theme.equals("light")) {
             isLight = true;
         } else if (theme.equals("auto")) {
-            // Если Авто: с 07:00 до 19:00 — светлая, ночью — темная
             int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
             isLight = (hour >= 7 && hour < 19);
         }
-        
-        // Мгновенно перекрашиваем фон корневого окна, чтобы изменения были без перезапуска
+
         View root = activity.getWindow().getDecorView().getRootView();
+        int dockId = activity.getResources().getIdentifier("dock_container", "id", activity.getPackageName());
+        View dock = activity.findViewById(dockId);
+
         if (isLight) {
-            root.setBackgroundColor(android.graphics.Color.parseColor("#F2F2F7"));
+            // Белый интерфейс
+            root.setBackgroundColor(Color.parseColor("#F2F2F7"));
+            if (dock != null && dock.getBackground() instanceof GradientDrawable) {
+                ((GradientDrawable) dock.getBackground()).setColor(Color.parseColor("#E6FFFFFF"));
+            }
         } else {
-            root.setBackgroundColor(android.graphics.Color.parseColor("#000000"));
+            // Черный интерфейс
+            root.setBackgroundColor(Color.parseColor("#000000"));
+            if (dock != null && dock.getBackground() instanceof GradientDrawable) {
+                ((GradientDrawable) dock.getBackground()).setColor(Color.parseColor("#4D1C1C1E"));
+            }
         }
+    }
+
+    // Проверяем, включена ли динамическая подсветка
+    public static boolean isAmbientGlowEnabled(Context context) {
+        return context.getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE)
+                      .getBoolean("ambient_glow", true);
     }
 }
