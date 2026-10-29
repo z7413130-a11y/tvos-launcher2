@@ -355,6 +355,16 @@ public class MainActivity extends Activity {
         Collections.sort(allApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
         
         String favs = prefs.getString("favorites", "");
+        
+        // ФОРСИРУЕМ добавление Настроек с помощью нового ключа settings_injected_v2
+        boolean settingsInjected = prefs.getBoolean("settings_injected_v2", false);
+        if (!settingsInjected) {
+            if (!favs.contains(VIRTUAL_SETTINGS_PKG)) {
+                favs = favs.isEmpty() ? VIRTUAL_SETTINGS_PKG : VIRTUAL_SETTINGS_PKG + "," + favs;
+            }
+            prefs.edit().putString("favorites", favs).putBoolean("settings_injected_v2", true).apply();
+        }
+
         List<String> favList = new ArrayList<>();
         if (!favs.isEmpty()) {
             for (String p : favs.split(",")) {
@@ -493,9 +503,6 @@ public class MainActivity extends Activity {
 
             ImageView iconImage = new ImageView(ctx);
             
-            // Если это наше системное приложение Настроек — заполняем всю карточку без отступов
-            iconImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            
             card.addView(iconImage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER));
 
             View glareOverlay = new View(ctx);
@@ -555,7 +562,6 @@ public class MainActivity extends Activity {
                 if (VIRTUAL_SETTINGS_PKG.equals(item.packageName)) {
                     vh.bgImage.setImageDrawable(null);
                     vh.bgImage.setBackgroundColor(Color.TRANSPARENT);
-                    // Иконка на всю карточку
                     vh.iconImage.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
                     vh.iconImage.setScaleType(ImageView.ScaleType.FIT_XY);
                 } else {
