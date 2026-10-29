@@ -4,8 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -17,8 +15,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.List;
-
 public class SettingsActivity extends Activity {
 
     private ImageView dynamicLeftIcon;
@@ -26,7 +22,7 @@ public class SettingsActivity extends Activity {
     private TextView titleView;
     private SharedPreferences prefs;
 
-    private enum MenuState { MAIN, GENERAL, APPEARANCE, HOME, SYSTEM, ABOUT, SCALE_OPTIONS, THEME_OPTIONS, SLEEP_OPTIONS, HIDE_APPS }
+    private enum MenuState { MAIN, GENERAL, APPEARANCE, HOME, SYSTEM, ABOUT, SLEEP_OPTIONS }
     private MenuState currentState = MenuState.MAIN;
 
     @Override
@@ -49,34 +45,50 @@ public class SettingsActivity extends Activity {
         listContainer.removeAllViews();
 
         addItem("Основные", "", R.drawable.ic_panel_info, this::loadGeneralMenu, true);
-        addItem("Оформление", "", R.drawable.ic_panel_appearance, this::loadAppearanceMenu, true);
-        addItem("Главный экран", "", R.drawable.ic_panel_home, this::loadHomeMenu, true);
-        addItem("Система", "", R.drawable.ic_panel_system, this::loadSystemMenu, true);
-        addItem("О лаунчере", "", R.drawable.ic_panel_info, this::loadAboutMenu, true);
+        addItem("Оформление", "", R.drawable.ic_panel_appearance, () -> showToast("В разработке"), true);
+        addItem("Главный экран", "", R.drawable.ic_panel_home, () -> showToast("В разработке"), true);
+        addItem("Система", "", R.drawable.ic_panel_system, () -> {
+            try {
+                startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
+            } catch (Exception e) {}
+        }, true);
+        addItem("О лаунчере", "", R.drawable.ic_panel_info, () -> {
+            currentState = MenuState.ABOUT;
+            titleView.setText("О лаунчере");
+            listContainer.removeAllViews();
+            addItem("Версия лаунчера: 1.0", "", R.drawable.ic_panel_info, null, false);
+            addItem("Сборка: Apple TV Edition", "", R.drawable.ic_panel_info, null, false);
+            addItem("Разработчик: iEFART", "", R.drawable.ic_panel_info, null, false);
+            requestFirstFocus();
+        }, true);
         
         dynamicLeftIcon.setImageResource(R.drawable.ic_panel_appearance);
         requestFirstFocus();
     }
 
-    // --- 1. ОСНОВНЫЕ ---
+    // --- БЛОК 1: ОСНОВНЫЕ ---
     private void loadGeneralMenu() {
         currentState = MenuState.GENERAL;
         titleView.setText("Основные");
         listContainer.removeAllViews();
         dynamicLeftIcon.setImageResource(R.drawable.ic_panel_info);
 
+        // 1. Формат времени (0 = 24 часа, 1 = 12 часов)
         int timeFormat = prefs.getInt("time_format", 0);
         String[] timeOptions = {"24 часа", "12 часов"};
         addItem("Формат времени", timeOptions[timeFormat], R.drawable.ic_panel_info, () -> {
             int nextFormat = (timeFormat + 1) % timeOptions.length;
             prefs.edit().putInt("time_format", nextFormat).apply();
             loadGeneralMenu();
+            showToast("Формат времени изменен");
         }, true);
 
+        // 2. Заставка / Спящий режим
         int sleepTime = prefs.getInt("sleep_timeout", 0);
         String[] sleepLabels = {"Отключено", "5 минут", "15 минут", "30 минут"};
         addItem("Заставка (Спящий режим)", sleepLabels[sleepTime], R.drawable.ic_panel_info, this::loadSleepOptionsMenu, true);
 
+        // 3. Лаунчер по умолчанию
         addItem("Лаунчер по умолчанию", "", R.drawable.ic_panel_info, () -> {
             try {
                 startActivity(new Intent(android.provider.Settings.ACTION_HOME_SETTINGS));
@@ -109,160 +121,6 @@ public class SettingsActivity extends Activity {
                 showToast("Таймер заставки изменен");
             }, false);
         }
-        requestFirstFocus();
-    }
-
-    // --- 2. ОФОРМЛЕНИЕ ---
-    private void loadAppearanceMenu() {
-        currentState = MenuState.APPEARANCE;
-        titleView.setText("Оформление");
-        listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_appearance);
-
-        addItem("Масштаб интерфейса", "", R.drawable.ic_panel_appearance, this::loadScaleOptionsMenu, true);
-
-        boolean glow = prefs.getBoolean("ambient_glow", true);
-        addItem("Окружающее свечение", glow ? "Вкл" : "Выкл", R.drawable.ic_panel_appearance, () -> {
-            prefs.edit().putBoolean("ambient_glow", !glow).apply();
-            loadAppearanceMenu();
-        }, true);
-
-        int theme = prefs.getInt("theme", 0);
-        String[] themeLabels = {"Темная", "Светлая", "Авто"};
-        addItem("Тема", themeLabels[theme], R.drawable.ic_panel_appearance, this::loadThemeOptionsMenu, true);
-
-        requestFirstFocus();
-    }
-
-    private void loadScaleOptionsMenu() {
-        currentState = MenuState.SCALE_OPTIONS;
-        titleView.setText("Масштаб интерфейса");
-        listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_appearance);
-
-        float currentScale = prefs.getFloat("ui_scale", 1.0f);
-
-        addItem("Мелкий (0.8x)", currentScale == 0.8f ? "✓" : "", R.drawable.ic_panel_appearance, () -> {
-            prefs.edit().putFloat("ui_scale", 0.8f).apply();
-            loadScaleOptionsMenu();
-            showToast("Масштаб изменен");
-        }, false);
-
-        addItem("Стандартный (1.0x)", currentScale == 1.0f ? "✓" : "", R.drawable.ic_panel_appearance, () -> {
-            prefs.edit().putFloat("ui_scale", 1.0f).apply();
-            loadScaleOptionsMenu();
-            showToast("Масштаб изменен");
-        }, false);
-
-        addItem("Крупный (1.2x)", currentScale == 1.2f ? "✓" : "", R.drawable.ic_panel_appearance, () -> {
-            prefs.edit().putFloat("ui_scale", 1.2f).apply();
-            loadScaleOptionsMenu();
-            showToast("Масштаб изменен");
-        }, false);
-
-        requestFirstFocus();
-    }
-
-    private void loadThemeOptionsMenu() {
-        currentState = MenuState.THEME_OPTIONS;
-        titleView.setText("Тема лаунчера");
-        listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_appearance);
-
-        int currentTheme = prefs.getInt("theme", 0);
-        String[] themeLabels = {"Темная", "Светлая", "Авто (по времени)"};
-
-        for (int i = 0; i < themeLabels.length; i++) {
-            final int idx = i;
-            addItem(themeLabels[i], currentTheme == idx ? "✓" : "", R.drawable.ic_panel_appearance, () -> {
-                prefs.edit().putInt("theme", idx).apply();
-                loadThemeOptionsMenu();
-                showToast("Тема изменена");
-            }, false);
-        }
-        requestFirstFocus();
-    }
-
-    // --- 3. ГЛАВНЫЙ ЭКРАН ---
-    private void loadHomeMenu() {
-        currentState = MenuState.HOME;
-        titleView.setText("Главный экран");
-        listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_home);
-
-        addItem("Скрытие приложений", "", R.drawable.ic_panel_home, this::loadHideAppsMenu, true);
-
-        addItem("Сброс избранного (Dock)", "", R.drawable.ic_panel_home, () -> {
-            prefs.edit().putString("favorites", "").apply();
-            showToast("Избранное в Dock очищено!");
-        }, true);
-
-        requestFirstFocus();
-    }
-
-    private void loadHideAppsMenu() {
-        currentState = MenuState.HIDE_APPS;
-        titleView.setText("Скрытие приложений");
-        listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_home);
-
-        PackageManager pm = getPackageManager();
-        Intent intent = new Intent(Intent.ACTION_MAIN, null);
-        intent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        List<ResolveInfo> apps = pm.queryIntentActivities(intent, 0);
-        String hiddenStr = prefs.getString("hidden_apps", "");
-
-        for (ResolveInfo ri : apps) {
-            if (ri.activityInfo.packageName.equals(getPackageName())) continue;
-            String pkg = ri.activityInfo.packageName;
-            String label = ri.loadLabel(pm).toString();
-            boolean isHidden = hiddenStr.contains(pkg);
-
-            addItem(label, isHidden ? "Скрыто" : "Видно", R.drawable.ic_panel_home, () -> {
-                String current = prefs.getString("hidden_apps", "");
-                if (isHidden) {
-                    prefs.edit().putString("hidden_apps", current.replace(pkg + ",", "")).apply();
-                } else {
-                    prefs.edit().putString("hidden_apps", current + pkg + ",").apply();
-                }
-                loadHideAppsMenu();
-            }, false);
-        }
-        requestFirstFocus();
-    }
-
-    // --- 4. СИСТЕМА (вернули исходный вид с переходом в параметры системы) ---
-    private void loadSystemMenu() {
-        currentState = MenuState.SYSTEM;
-        titleView.setText("Система");
-        listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_system);
-
-        addItem("Настройки Android TV", "", R.drawable.ic_panel_system, () -> {
-            try {
-                startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
-            } catch (Exception e) {}
-        }, true);
-        addItem("Язык", "", R.drawable.ic_panel_system, () -> {
-            try {
-                startActivity(new Intent(android.provider.Settings.ACTION_LOCALE_SETTINGS));
-            } catch (Exception e) {}
-        }, true);
-
-        requestFirstFocus();
-    }
-
-    // --- 5. О ЛАУНЧЕРЕ (вернули исходную информационную карточку) ---
-    private void loadAboutMenu() {
-        currentState = MenuState.ABOUT;
-        titleView.setText("О лаунчере");
-        listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_info);
-
-        addItem("Версия лаунчера: 1.0", "", R.drawable.ic_panel_info, null, false);
-        addItem("Сборка: Apple TV Edition", "", R.drawable.ic_panel_info, null, false);
-        addItem("Разработчик: iEFART", "", R.drawable.ic_panel_info, null, false);
-
         requestFirstFocus();
     }
 
@@ -353,10 +211,8 @@ public class SettingsActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (currentState == MenuState.SCALE_OPTIONS || currentState == MenuState.THEME_OPTIONS || currentState == MenuState.SLEEP_OPTIONS) {
-            loadAppearanceMenu();
-        } else if (currentState == MenuState.HIDE_APPS) {
-            loadHomeMenu();
+        if (currentState == MenuState.SLEEP_OPTIONS || currentState == MenuState.GENERAL) {
+            loadMainMenu();
         } else if (currentState != MenuState.MAIN) {
             loadMainMenu();
         } else {
