@@ -22,7 +22,7 @@ public class SettingsActivity extends Activity {
     private TextView titleView;
     private SharedPreferences prefs;
 
-    private enum MenuState { MAIN, GENERAL, APPEARANCE, HOME, SYSTEM, ABOUT, SLEEP_OPTIONS, BG_MODE_OPTIONS }
+    private enum MenuState { MAIN, GENERAL, SYSTEM, ABOUT, SLEEP_OPTIONS }
     private MenuState currentState = MenuState.MAIN;
 
     @Override
@@ -45,20 +45,10 @@ public class SettingsActivity extends Activity {
         listContainer.removeAllViews();
 
         addItem("Основные", "", R.drawable.ic_panel_info, this::loadGeneralMenu, true);
-        addItem("Оформление", "", R.drawable.ic_panel_appearance, this::loadAppearanceMenu, true);
+        addItem("Оформление", "", R.drawable.ic_panel_appearance, () -> showToast("В разработке"), true);
         addItem("Главный экран", "", R.drawable.ic_panel_home, () -> showToast("В разработке"), true);
-        addItem("Система", "", R.drawable.ic_panel_system, () -> {
-            try { startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS)); } catch (Exception e) {}
-        }, true);
-        addItem("О лаунчере", "", R.drawable.ic_panel_info, () -> {
-            currentState = MenuState.ABOUT;
-            titleView.setText("О лаунчере");
-            listContainer.removeAllViews();
-            addItem("Версия лаунчера: 1.0", "", R.drawable.ic_panel_info, null, false);
-            addItem("Сборка: Apple TV Edition", "", R.drawable.ic_panel_info, null, false);
-            addItem("Разработчик: iEFART", "", R.drawable.ic_panel_info, null, false);
-            requestFirstFocus();
-        }, true);
+        addItem("Система", "", R.drawable.ic_panel_system, this::loadSystemMenu, true);
+        addItem("О лаунчере", "", R.drawable.ic_panel_info, this::loadAboutMenu, true);
         
         dynamicLeftIcon.setImageResource(R.drawable.ic_panel_appearance);
         requestFirstFocus();
@@ -112,39 +102,38 @@ public class SettingsActivity extends Activity {
         requestFirstFocus();
     }
 
-    // --- ОФОРМЛЕНИЕ ---
-    private void loadAppearanceMenu() {
-        currentState = MenuState.APPEARANCE;
-        titleView.setText("Оформление");
+    // --- СИСТЕМА ---
+    private void loadSystemMenu() {
+        currentState = MenuState.SYSTEM;
+        titleView.setText("Система");
         listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_appearance);
+        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_system);
 
-        int bgMode = prefs.getInt("bg_mode", 0);
-        String bgModeLabel = bgMode == 0 ? "Динамическая подсветка" : "Динамические баннеры";
+        addItem("Настройки Android TV", "", R.drawable.ic_panel_system, () -> {
+            try { startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS)); } catch (Exception e) {}
+        }, true);
         
-        addItem("Режим фона", bgModeLabel, R.drawable.ic_panel_appearance, this::loadBgModeMenu, true);
-        addItem("Тема лаунчера", "Темная", R.drawable.ic_panel_appearance, null, false);
-
+        addItem("Язык", "", R.drawable.ic_panel_system, () -> {
+            try { startActivity(new Intent(android.provider.Settings.ACTION_LOCALE_SETTINGS)); } 
+            catch (Exception e) { showToast("Открытие настроек языка..."); }
+        }, true);
+        
+        addItem("Сброс", "", R.drawable.ic_panel_system, () -> showToast("В разработке"), true);
+        
         requestFirstFocus();
     }
 
-    private void loadBgModeMenu() {
-        currentState = MenuState.BG_MODE_OPTIONS;
-        titleView.setText("Режим фона");
+    // --- О ЛАУНЧЕРЕ ---
+    private void loadAboutMenu() {
+        currentState = MenuState.ABOUT;
+        titleView.setText("О лаунчере");
         listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_appearance);
+        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_info);
 
-        int bgMode = prefs.getInt("bg_mode", 0);
-
-        addItem("Динамическая подсветка", bgMode == 0 ? "✓" : "", R.drawable.ic_panel_appearance, () -> {
-            prefs.edit().putInt("bg_mode", 0).apply();
-            loadBgModeMenu();
-        }, false);
-
-        addItem("Динамические баннеры", bgMode == 1 ? "✓" : "", R.drawable.ic_panel_appearance, () -> {
-            prefs.edit().putInt("bg_mode", 1).apply();
-            loadBgModeMenu();
-        }, false);
+        addItem("Версия лаунчера: 1.0", "", R.drawable.ic_panel_info, null, false);
+        addItem("Сборка: Apple TV Edition", "", R.drawable.ic_panel_info, null, false);
+        addItem("Разработчик: iEFART", "", R.drawable.ic_panel_info, null, false);
+        addItem("Проверить обновления", "", R.drawable.ic_panel_info, () -> showToast("В разработке"), true);
 
         requestFirstFocus();
     }
@@ -215,8 +204,7 @@ public class SettingsActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (currentState == MenuState.SLEEP_OPTIONS || currentState == MenuState.GENERAL) loadMainMenu();
-        else if (currentState == MenuState.BG_MODE_OPTIONS) loadAppearanceMenu();
+        if (currentState == MenuState.SLEEP_OPTIONS || currentState == MenuState.GENERAL || currentState == MenuState.SYSTEM || currentState == MenuState.ABOUT) loadMainMenu();
         else if (currentState != MenuState.MAIN) loadMainMenu();
         else super.onBackPressed();
     }

@@ -730,4 +730,10 @@ public class MainActivity extends Activity {
             return items.size();
         }
     }
+
+    @Override
+    public void onUserInteraction() {
+        super.onUserInteraction();
+        SettingsManager.startSleepTimer(this);
+    }
 }
