@@ -2,14 +2,13 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0A0A0C" <!-- Почти черный фон -->
+    android:background="#0A0A0C"
     android:orientation="horizontal"
     android:paddingTop="60dp"
     android:paddingBottom="60dp"
     android:paddingStart="100dp"
     android:paddingEnd="100dp">
 
-    <!-- Левая панель с иконкой (УМЕНЬШИЛИ РАЗМЕР!) -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
@@ -18,10 +17,10 @@
         android:orientation="vertical">
         
         <FrameLayout
-            android:layout_width="210dp" <!-- Было 280dp, стало 210dp -->
+            android:layout_width="210dp"
             android:layout_height="210dp"
             android:background="@drawable/bg_settings_left_panel"
-            android:elevation="0dp"> <!-- Убрали тень, в tvOS её тут нет -->
+            android:elevation="0dp">
             
             <ImageView
                 android:id="@+id/dynamic_left_icon"
@@ -32,7 +31,6 @@
         </FrameLayout>
     </LinearLayout>
 
-    <!-- Правая панель со списком настроек -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
