@@ -113,7 +113,7 @@
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:text="Apple TV"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/text_main"
             android:textSize="34sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif-condensed" />

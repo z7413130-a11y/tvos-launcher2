@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="launcher_bg">#000000</color> <!-- Строгий черный фон -->
+    <color name="text_main">#FFFFFF</color> <!-- Белый текст -->
+    <color name="text_sub">#999999</color>
+    <color name="card_bg">#1C1C1E</color>
+    <color name="focus_border">#FFFFFF</color>
+</resources>

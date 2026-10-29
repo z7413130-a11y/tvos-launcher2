@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="launcher_bg">#F2F2F7</color> <!-- Морозно-белый фон -->
+    <color name="text_main">#000000</color> <!-- Темный текст для читаемости -->
+    <color name="text_sub">#8E8E93</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="focus_border">#007AFF</color>
+</resources>
