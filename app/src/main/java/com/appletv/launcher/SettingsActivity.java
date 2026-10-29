@@ -22,7 +22,7 @@ public class SettingsActivity extends Activity {
     private TextView titleView;
     private SharedPreferences prefs;
 
-    private enum MenuState { MAIN, GENERAL, APPEARANCE, HOME, SYSTEM, ABOUT, SLEEP_OPTIONS }
+    private enum MenuState { MAIN, GENERAL, APPEARANCE, HOME, SYSTEM, ABOUT, SLEEP_OPTIONS, BG_MODE_OPTIONS }
     private MenuState currentState = MenuState.MAIN;
 
     @Override
@@ -48,9 +48,7 @@ public class SettingsActivity extends Activity {
         addItem("Оформление", "", R.drawable.ic_panel_appearance, this::loadAppearanceMenu, true);
         addItem("Главный экран", "", R.drawable.ic_panel_home, () -> showToast("В разработке"), true);
         addItem("Система", "", R.drawable.ic_panel_system, () -> {
-            try {
-                startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
-            } catch (Exception e) {}
+            try { startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS)); } catch (Exception e) {}
         }, true);
         addItem("О лаунчере", "", R.drawable.ic_panel_info, () -> {
             currentState = MenuState.ABOUT;
@@ -66,7 +64,7 @@ public class SettingsActivity extends Activity {
         requestFirstFocus();
     }
 
-    // --- БЛОК 1: ОСНОВНЫЕ ---
+    // --- ОСНОВНЫЕ ---
     private void loadGeneralMenu() {
         currentState = MenuState.GENERAL;
         titleView.setText("Основные");
@@ -87,15 +85,8 @@ public class SettingsActivity extends Activity {
         addItem("Заставка (Спящий режим)", sleepLabels[sleepTime], R.drawable.ic_panel_info, this::loadSleepOptionsMenu, true);
 
         addItem("Лаунчер по умолчанию", "", R.drawable.ic_panel_info, () -> {
-            try {
-                startActivity(new Intent(android.provider.Settings.ACTION_HOME_SETTINGS));
-            } catch (Exception e) {
-                try {
-                    startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));
-                } catch (Exception ex) {
-                    showToast("Не удалось открыть системные настройки");
-                }
-            }
+            try { startActivity(new Intent(android.provider.Settings.ACTION_HOME_SETTINGS)); } 
+            catch (Exception e) { try { startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS)); } catch (Exception ex) {} }
         }, true);
 
         requestFirstFocus();
@@ -121,16 +112,39 @@ public class SettingsActivity extends Activity {
         requestFirstFocus();
     }
 
-    // --- БЛОК 2: ОФОРМЛЕНИЕ (Статичное) ---
+    // --- ОФОРМЛЕНИЕ ---
     private void loadAppearanceMenu() {
         currentState = MenuState.APPEARANCE;
         titleView.setText("Оформление");
         listContainer.removeAllViews();
         dynamicLeftIcon.setImageResource(R.drawable.ic_panel_appearance);
 
-        // Показываем, что эти параметры фиксированы дизайном
+        int bgMode = prefs.getInt("bg_mode", 0);
+        String bgModeLabel = bgMode == 0 ? "Динамическая подсветка" : "Динамические баннеры";
+        
+        addItem("Режим фона", bgModeLabel, R.drawable.ic_panel_appearance, this::loadBgModeMenu, true);
         addItem("Тема лаунчера", "Темная", R.drawable.ic_panel_appearance, null, false);
-        addItem("Динамическая подсветка", "Всегда вкл", R.drawable.ic_panel_appearance, null, false);
+
+        requestFirstFocus();
+    }
+
+    private void loadBgModeMenu() {
+        currentState = MenuState.BG_MODE_OPTIONS;
+        titleView.setText("Режим фона");
+        listContainer.removeAllViews();
+        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_appearance);
+
+        int bgMode = prefs.getInt("bg_mode", 0);
+
+        addItem("Динамическая подсветка", bgMode == 0 ? "✓" : "", R.drawable.ic_panel_appearance, () -> {
+            prefs.edit().putInt("bg_mode", 0).apply();
+            loadBgModeMenu();
+        }, false);
+
+        addItem("Динамические баннеры", bgMode == 1 ? "✓" : "", R.drawable.ic_panel_appearance, () -> {
+            prefs.edit().putInt("bg_mode", 1).apply();
+            loadBgModeMenu();
+        }, false);
 
         requestFirstFocus();
     }
@@ -142,27 +156,18 @@ public class SettingsActivity extends Activity {
         });
     }
 
-    private void showToast(String msg) {
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
-    }
+    private void showToast(String msg) { Toast.makeText(this, msg, Toast.LENGTH_SHORT).show(); }
 
     private void addItem(String text, String value, int iconResId, Runnable onClick, boolean hasArrow) {
         LinearLayout row = new LinearLayout(this);
         LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(48));
         rowParams.setMargins(0, 0, 0, dpToPx(6)); 
         row.setLayoutParams(rowParams);
-        
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         
-        if (onClick == null) {
-            row.setFocusable(false);
-            row.setClickable(false);
-        } else {
-            row.setFocusable(true);
-            row.setClickable(true);
-            row.setOnClickListener(v -> onClick.run());
-        }
+        if (onClick == null) { row.setFocusable(false); row.setClickable(false); } 
+        else { row.setFocusable(true); row.setClickable(true); row.setOnClickListener(v -> onClick.run()); }
         
         row.setPadding(dpToPx(16), 0, dpToPx(16), 0);
         row.setBackgroundResource(R.drawable.bg_settings_row_normal);
@@ -172,7 +177,6 @@ public class SettingsActivity extends Activity {
         label.setTextColor(Color.WHITE);
         label.setTextSize(16f);
         label.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-        
         LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
         row.addView(label, textParams);
 
@@ -182,7 +186,6 @@ public class SettingsActivity extends Activity {
             valView.setTextColor(Color.parseColor("#999999"));
             valView.setTextSize(14f);
             valView.setPadding(0, 0, dpToPx(12), 0);
-            valView.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
             row.addView(valView);
         }
 
@@ -190,8 +193,6 @@ public class SettingsActivity extends Activity {
         arrow.setText(">");
         arrow.setTextColor(Color.parseColor("#777777"));
         arrow.setTextSize(16f);
-        arrow.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
-        
         if (!hasArrow) arrow.setVisibility(View.GONE);
         row.addView(arrow);
 
@@ -201,13 +202,6 @@ public class SettingsActivity extends Activity {
                 label.setTextColor(Color.BLACK);
                 arrow.setTextColor(Color.BLACK);
                 row.animate().scaleX(1.02f).scaleY(1.02f).setDuration(150).start();
-                
-                if (currentState == MenuState.MAIN) {
-                    dynamicLeftIcon.animate().alpha(0f).setDuration(100).withEndAction(() -> {
-                        dynamicLeftIcon.setImageResource(iconResId);
-                        dynamicLeftIcon.animate().alpha(1f).setDuration(100).start();
-                    }).start();
-                }
             } else {
                 row.setBackgroundResource(R.drawable.bg_settings_row_normal);
                 label.setTextColor(Color.WHITE);
@@ -221,16 +215,11 @@ public class SettingsActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (currentState == MenuState.SLEEP_OPTIONS || currentState == MenuState.GENERAL || currentState == MenuState.APPEARANCE) {
-            loadMainMenu();
-        } else if (currentState != MenuState.MAIN) {
-            loadMainMenu();
-        } else {
-            super.onBackPressed();
-        }
+        if (currentState == MenuState.SLEEP_OPTIONS || currentState == MenuState.GENERAL) loadMainMenu();
+        else if (currentState == MenuState.BG_MODE_OPTIONS) loadAppearanceMenu();
+        else if (currentState != MenuState.MAIN) loadMainMenu();
+        else super.onBackPressed();
     }
 
-    private int dpToPx(int dp) {
-        return (int) (dp * getResources().getDisplayMetrics().density + 0.5f);
-    }
+    private int dpToPx(int dp) { return (int) (dp * getResources().getDisplayMetrics().density + 0.5f); }
 }
