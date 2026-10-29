@@ -317,7 +317,6 @@ public class MainActivity extends Activity {
 
         List<AppItem> allApps = new ArrayList<>();
         
-        // 1. ИНЖЕКЦИЯ ВИРТУАЛЬНОГО ПРИЛОЖЕНИЯ НАСТРОЕК
         Drawable settingsIcon = getResources().getDrawable(R.drawable.ic_tvos_settings, null);
         AppItem virtualSettings = new AppItem(VIRTUAL_SETTINGS_PKG, "Настройки", settingsIcon, null, 0xFF8A8C92);
         allApps.add(virtualSettings);
@@ -493,11 +492,11 @@ public class MainActivity extends Activity {
             card.addView(bgImage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
             ImageView iconImage = new ImageView(ctx);
+            
+            // Если это наше системное приложение Настроек — заполняем всю карточку без отступов
             iconImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
             
-            // Если это наше системное приложение Настроек — заполняем всю карточку, иначе 56dp
-            int iconSize = ViewGroup.LayoutParams.MATCH_PARENT; 
-            card.addView(iconImage, new FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER));
+            card.addView(iconImage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER));
 
             View glareOverlay = new View(ctx);
             GradientDrawable glareGd = new GradientDrawable(
@@ -553,11 +552,12 @@ public class MainActivity extends Activity {
                 vh.bgImage.setImageDrawable(item.banner);
                 vh.iconImage.setVisibility(View.GONE);
             } else {
-                // Если это наша виртуальная иконка настроек, мы не рисуем градиент и делаем ее на всю ширину
                 if (VIRTUAL_SETTINGS_PKG.equals(item.packageName)) {
                     vh.bgImage.setImageDrawable(null);
                     vh.bgImage.setBackgroundColor(Color.TRANSPARENT);
+                    // Иконка на всю карточку
                     vh.iconImage.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                    vh.iconImage.setScaleType(ImageView.ScaleType.FIT_XY);
                 } else {
                     int baseColor = item.dominantColor;
                     int darkColor = Color.rgb((int)(Color.red(baseColor) * 0.35f), (int)(Color.green(baseColor) * 0.35f), (int)(Color.blue(baseColor) * 0.35f));
@@ -566,6 +566,7 @@ public class MainActivity extends Activity {
                     
                     int iconSize = dpToPx((int)(56 * currentUiScale));
                     vh.iconImage.setLayoutParams(new FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER));
+                    vh.iconImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 }
                 vh.iconImage.setImageDrawable(item.icon);
                 vh.iconImage.setVisibility(View.VISIBLE);
@@ -705,7 +706,6 @@ public class MainActivity extends Activity {
                 }
             });
 
-            // 2. ПЕРЕХВАТ КЛИКА ДЛЯ ВИРТУАЛЬНОГО ПРИЛОЖЕНИЯ
             vh.root.setOnClickListener(v -> {
                 if (VIRTUAL_SETTINGS_PKG.equals(item.packageName)) {
                     startActivity(new Intent(MainActivity.this, SettingsActivity.class));

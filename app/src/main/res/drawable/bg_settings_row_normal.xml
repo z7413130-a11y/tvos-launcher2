@@ -1,4 +1,4 @@
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#2C2C2E"/> <!-- Темно-серая полоска -->
-    <corners android:radius="12dp"/>
+    <solid android:color="#33FFFFFF"/> <!-- Полупрозрачный светлый фон -->
+    <corners android:radius="8dp"/> <!-- Уменьшили радиус -->
 </shape>
