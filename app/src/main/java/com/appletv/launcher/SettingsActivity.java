@@ -23,7 +23,6 @@ public class SettingsActivity extends Activity {
         dynamicLeftIcon = findViewById(R.id.dynamic_left_icon);
         LinearLayout listContainer = findViewById(R.id.settings_list_container);
 
-        // Всё на русском, как ты просил!
         String[] sections = {"Основные", "Оформление", "Главный экран", "Система", "О лаунчере"};
         int[] icons = {
             R.drawable.ic_panel_info,
@@ -40,23 +39,23 @@ public class SettingsActivity extends Activity {
 
     private View createSettingsItem(String text, int iconResId) {
         LinearLayout row = new LinearLayout(this);
-        // Делаем строки ТОНКИМИ (44dp) с минимальным отступом между ними (1dp)
+        // Увеличили отступ снизу с 1dp до 6dp, чтобы визуально разделить пункты
         LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpToPx(44));
-        rowParams.setMargins(0, 0, 0, dpToPx(1)); 
+        rowParams.setMargins(0, 0, 0, dpToPx(6)); 
         row.setLayoutParams(rowParams);
         
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setFocusable(true);
         row.setClickable(true);
-        row.setPadding(dpToPx(16), 0, dpToPx(16), 0); // Аккуратные отступы внутри
+        row.setPadding(dpToPx(16), 0, dpToPx(16), 0);
         
         row.setBackgroundResource(R.drawable.bg_settings_row_normal);
 
         TextView label = new TextView(this);
         label.setText(text);
         label.setTextColor(Color.WHITE);
-        label.setTextSize(16f); // Уменьшили шрифт, чтобы было гармонично
+        label.setTextSize(16f);
         label.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         
         LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
@@ -65,7 +64,7 @@ public class SettingsActivity extends Activity {
         TextView arrow = new TextView(this);
         arrow.setText(">");
         arrow.setTextColor(Color.parseColor("#777777"));
-        arrow.setTextSize(16f); // Аккуратная тонкая стрелка
+        arrow.setTextSize(16f);
         arrow.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         row.addView(arrow);
 
@@ -76,7 +75,6 @@ public class SettingsActivity extends Activity {
                 arrow.setTextColor(Color.BLACK);
                 row.animate().scaleX(1.02f).scaleY(1.02f).setDuration(150).start();
                 
-                // Плавная смена иконки слева
                 dynamicLeftIcon.animate().alpha(0f).setDuration(100).withEndAction(() -> {
                     dynamicLeftIcon.setImageResource(iconResId);
                     dynamicLeftIcon.animate().alpha(1f).setDuration(100).start();
