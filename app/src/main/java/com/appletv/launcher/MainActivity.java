@@ -64,6 +64,7 @@ public class MainActivity extends Activity {
     private float currentUiScale = 1.0f;
     
     private boolean isGridViewOpen = false; 
+    public static final String VIRTUAL_SETTINGS_PKG = "com.appletv.launcher.INTERNAL_SETTINGS";
 
     private final Map<String, Integer> fallbackBanners = new HashMap<>();
 
@@ -223,15 +224,12 @@ public class MainActivity extends Activity {
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         int screenWidth = metrics.widthPixels;
         
-        // Математика для ИДЕАЛЬНО РОВНЫХ КОЛОНОК
-        // Отступы по краям 52dp (36 margin + 16 padding) = 104dp общих отступов
         int screenMarginsPx = dpToPx((int)(104 * currentUiScale)); 
         int availableWidthPx = screenWidth - screenMarginsPx;
         
         int columns = 6;
         int itemCellWidthPx = availableWidthPx / columns;
         
-        // Единые отступы и единый размер карточек для всего лаунчера
         int itemMarginPx = dpToPx((int)(8 * currentUiScale));
         int cardWidthPx = itemCellWidthPx - (itemMarginPx * 2);
         int cardHeightPx = (int) (cardWidthPx * (9f / 16f)); 
@@ -241,7 +239,6 @@ public class MainActivity extends Activity {
         
         if (dockRecycler != null) {
             dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-            // Внимание: Передаем ТЕ ЖЕ САМЫЕ cardWidthPx, cardHeightPx и itemMarginPx
             dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true, cardWidthPx, cardHeightPx, itemMarginPx));
         }
     }
@@ -320,6 +317,11 @@ public class MainActivity extends Activity {
 
         List<AppItem> allApps = new ArrayList<>();
         
+        // 1. ИНЖЕКЦИЯ ВИРТУАЛЬНОГО ПРИЛОЖЕНИЯ НАСТРОЕК
+        Drawable settingsIcon = getResources().getDrawable(R.drawable.ic_tvos_settings, null);
+        AppItem virtualSettings = new AppItem(VIRTUAL_SETTINGS_PKG, "Настройки", settingsIcon, null, 0xFF8A8C92);
+        allApps.add(virtualSettings);
+
         for (ResolveInfo ri : uniqueApps.values()) {
             if (ri.activityInfo.packageName.equals(getPackageName())) continue;
 
@@ -492,7 +494,9 @@ public class MainActivity extends Activity {
 
             ImageView iconImage = new ImageView(ctx);
             iconImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            int iconSize = isDock ? dpToPx((int)(66 * currentUiScale)) : dpToPx((int)(56 * currentUiScale));
+            
+            // Если это наше системное приложение Настроек — заполняем всю карточку, иначе 56dp
+            int iconSize = ViewGroup.LayoutParams.MATCH_PARENT; 
             card.addView(iconImage, new FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER));
 
             View glareOverlay = new View(ctx);
@@ -549,10 +553,20 @@ public class MainActivity extends Activity {
                 vh.bgImage.setImageDrawable(item.banner);
                 vh.iconImage.setVisibility(View.GONE);
             } else {
-                int baseColor = item.dominantColor;
-                int darkColor = Color.rgb((int)(Color.red(baseColor) * 0.35f), (int)(Color.green(baseColor) * 0.35f), (int)(Color.blue(baseColor) * 0.35f));
-                GradientDrawable gradient = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{baseColor, darkColor});
-                vh.bgImage.setImageDrawable(gradient);
+                // Если это наша виртуальная иконка настроек, мы не рисуем градиент и делаем ее на всю ширину
+                if (VIRTUAL_SETTINGS_PKG.equals(item.packageName)) {
+                    vh.bgImage.setImageDrawable(null);
+                    vh.bgImage.setBackgroundColor(Color.TRANSPARENT);
+                    vh.iconImage.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                } else {
+                    int baseColor = item.dominantColor;
+                    int darkColor = Color.rgb((int)(Color.red(baseColor) * 0.35f), (int)(Color.green(baseColor) * 0.35f), (int)(Color.blue(baseColor) * 0.35f));
+                    GradientDrawable gradient = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{baseColor, darkColor});
+                    vh.bgImage.setImageDrawable(gradient);
+                    
+                    int iconSize = dpToPx((int)(56 * currentUiScale));
+                    vh.iconImage.setLayoutParams(new FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER));
+                }
                 vh.iconImage.setImageDrawable(item.icon);
                 vh.iconImage.setVisibility(View.VISIBLE);
             }
@@ -691,7 +705,13 @@ public class MainActivity extends Activity {
                 }
             });
 
+            // 2. ПЕРЕХВАТ КЛИКА ДЛЯ ВИРТУАЛЬНОГО ПРИЛОЖЕНИЯ
             vh.root.setOnClickListener(v -> {
+                if (VIRTUAL_SETTINGS_PKG.equals(item.packageName)) {
+                    startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+                    return;
+                }
+
                 PackageManager pm = getPackageManager();
                 Intent launch = pm.getLeanbackLaunchIntentForPackage(item.packageName);
                 if (launch == null) launch = pm.getLaunchIntentForPackage(item.packageName);
