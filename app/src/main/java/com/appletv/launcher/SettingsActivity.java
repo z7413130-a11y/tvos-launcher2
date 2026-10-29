@@ -24,6 +24,7 @@ public class SettingsActivity extends Activity {
 
     private enum MenuState { MAIN, GENERAL, SYSTEM, ABOUT, SLEEP_OPTIONS }
     private MenuState currentState = MenuState.MAIN;
+    private int currentLeftIconId = -1; // Кэш текущей иконки, чтобы не мерцало
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,10 +40,21 @@ public class SettingsActivity extends Activity {
         loadMainMenu();
     }
 
+    private void updateLeftIcon(int resId) {
+        if (currentLeftIconId == resId) return;
+        currentLeftIconId = resId;
+        
+        dynamicLeftIcon.animate().alpha(0f).setDuration(120).withEndAction(() -> {
+            dynamicLeftIcon.setImageResource(resId);
+            dynamicLeftIcon.animate().alpha(1f).setDuration(120).start();
+        }).start();
+    }
+
     private void loadMainMenu() {
         currentState = MenuState.MAIN;
         titleView.setText("Настройки");
         listContainer.removeAllViews();
+        currentLeftIconId = -1; // Сброс при возврате в главное меню
 
         addItem("Основные", "", R.drawable.ic_panel_info, this::loadGeneralMenu, true);
         addItem("Оформление", "", R.drawable.ic_panel_appearance, () -> showToast("В разработке"), true);
@@ -50,7 +62,6 @@ public class SettingsActivity extends Activity {
         addItem("Система", "", R.drawable.ic_panel_system, this::loadSystemMenu, true);
         addItem("О лаунчере", "", R.drawable.ic_panel_info, this::loadAboutMenu, true);
         
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_appearance);
         requestFirstFocus();
     }
 
@@ -59,7 +70,7 @@ public class SettingsActivity extends Activity {
         currentState = MenuState.GENERAL;
         titleView.setText("Основные");
         listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_info);
+        updateLeftIcon(R.drawable.ic_panel_info);
 
         int timeFormat = prefs.getInt("time_format", 0);
         String[] timeOptions = {"24 часа", "12 часов"};
@@ -86,7 +97,7 @@ public class SettingsActivity extends Activity {
         currentState = MenuState.SLEEP_OPTIONS;
         titleView.setText("Спящий режим");
         listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_info);
+        updateLeftIcon(R.drawable.ic_panel_info);
 
         int currentSleep = prefs.getInt("sleep_timeout", 0);
         String[] sleepLabels = {"Отключено", "5 минут", "15 минут", "30 минут"};
@@ -107,7 +118,7 @@ public class SettingsActivity extends Activity {
         currentState = MenuState.SYSTEM;
         titleView.setText("Система");
         listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_system);
+        updateLeftIcon(R.drawable.ic_panel_system);
 
         addItem("Настройки Android TV", "", R.drawable.ic_panel_system, () -> {
             try { startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS)); } catch (Exception e) {}
@@ -128,7 +139,7 @@ public class SettingsActivity extends Activity {
         currentState = MenuState.ABOUT;
         titleView.setText("О лаунчере");
         listContainer.removeAllViews();
-        dynamicLeftIcon.setImageResource(R.drawable.ic_panel_info);
+        updateLeftIcon(R.drawable.ic_panel_info);
 
         addItem("Версия лаунчера: 1.0", "", R.drawable.ic_panel_info, null, false);
         addItem("Сборка: Apple TV Edition", "", R.drawable.ic_panel_info, null, false);
@@ -191,6 +202,11 @@ public class SettingsActivity extends Activity {
                 label.setTextColor(Color.BLACK);
                 arrow.setTextColor(Color.BLACK);
                 row.animate().scaleX(1.02f).scaleY(1.02f).setDuration(150).start();
+                
+                // ВОТ ОН, ИСПРАВЛЕННЫЙ МЕХАНИЗМ СМЕНЫ КАРТИНКИ
+                if (currentState == MenuState.MAIN) {
+                    updateLeftIcon(iconResId);
+                }
             } else {
                 row.setBackgroundResource(R.drawable.bg_settings_row_normal);
                 label.setTextColor(Color.WHITE);

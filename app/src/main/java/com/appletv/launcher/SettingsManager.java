@@ -13,10 +13,8 @@ public class SettingsManager {
     private static Runnable sleepRunnable;
 
     public static void applyTimeFormat(Activity activity) {
-        // Динамически ищем часы на экране
         int clockId = activity.getResources().getIdentifier("clock_tv", "id", activity.getPackageName());
         if (clockId == 0) clockId = activity.getResources().getIdentifier("textClock", "id", activity.getPackageName());
-        if (clockId == 0) clockId = activity.getResources().getIdentifier("clock", "id", activity.getPackageName());
         
         if (clockId != 0) {
             View view = activity.findViewById(clockId);
@@ -24,6 +22,8 @@ public class SettingsManager {
                 TextClock clock = (TextClock) view;
                 SharedPreferences prefs = activity.getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
                 int timeFormat = prefs.getInt("time_format", 0);
+                
+                // Символ 'a' автоматически выводит AM или PM
                 if (timeFormat == 1) {
                     clock.setFormat12Hour("h:mm a");
                     clock.setFormat24Hour(null);
@@ -48,14 +48,12 @@ public class SettingsManager {
             sleepHandler.removeCallbacks(sleepRunnable);
         }
 
-        // При любой активности возвращаем нормальную яркость
         WindowManager.LayoutParams params = activity.getWindow().getAttributes();
         params.screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
         activity.getWindow().setAttributes(params);
 
         if (timeoutMs > 0) {
             sleepRunnable = () -> {
-                // Затемняем экран при бездействии
                 WindowManager.LayoutParams dimParams = activity.getWindow().getAttributes();
                 dimParams.screenBrightness = 0.0f; 
                 activity.getWindow().setAttributes(dimParams);
