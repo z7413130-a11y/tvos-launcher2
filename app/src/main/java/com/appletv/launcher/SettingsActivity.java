@@ -58,7 +58,7 @@ public class SettingsActivity extends Activity {
 
         addItem("Основные", "", R.drawable.ic_panel_info, this::loadGeneralMenu, true);
         addItem("Оформление", "", R.drawable.ic_panel_appearance, this::loadAppearanceMenu, true);
-        addItem("Главный экран", "", R.drawable.ic_panel_home, () -> showToast("В разработке"), true);
+        addItem("Главный экран", "", R.drawable.ic_panel_home, this::loadAppearanceMenu, true);
         addItem("Система", "", R.drawable.ic_panel_system, this::loadSystemMenu, true);
         addItem("О лаунчере", "", R.drawable.ic_panel_info, this::loadAboutMenu, true);
         
@@ -147,7 +147,7 @@ public class SettingsActivity extends Activity {
             catch (Exception e) { showToast("Открытие настроек языка..."); }
         }, true);
         
-        addItem("Сброс", "", R.drawable.ic_panel_system, () -> showToast("В разработке"), true);
+        addItem("Сброс", "", R.drawable.ic_panel_system, this::loadAppearanceMenu, true);
         
         requestFirstFocus();
     }
@@ -162,7 +162,7 @@ public class SettingsActivity extends Activity {
         addItem("Версия лаунчера: 1.0", "", R.drawable.ic_panel_info, null, false);
         addItem("Сборка: Apple TV Edition", "", R.drawable.ic_panel_info, null, false);
         addItem("Разработчик: iEFART", "", R.drawable.ic_panel_info, null, false);
-        addItem("Проверить обновления", "", R.drawable.ic_panel_info, () -> showToast("В разработке"), true);
+        addItem("Проверить обновления", "", R.drawable.ic_panel_info, this::loadAppearanceMenu, true);
 
         requestFirstFocus();
     }
