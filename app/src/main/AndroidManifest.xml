@@ -6,7 +6,8 @@
 
     <application
         android:allowBackup="true"
-        android:label="Simple TV Launcher"
+        android:label="ApplineTV"
+        android:icon="@drawable/ic_launcher"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
 
         <activity

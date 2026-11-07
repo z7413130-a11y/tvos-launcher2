@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Фон: тёмный градиент -->
+    <path
+        android:pathData="M0,0 h108 v108 h-108 z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:startX="0" android:startY="0"
+                android:endX="108" android:endY="108"
+                android:type="linear">
+                <item android:offset="0" android:color="#1A1A2E"/>
+                <item android:offset="1" android:color="#0F0F1A"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Мягкое свечение по центру -->
+    <path
+        android:pathData="M54,18 A36,36 0 1,1 54,90 A36,36 0 1,1 54,18 Z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:startX="54" android:startY="18"
+                android:endX="54" android:endY="90"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF3B5C"/>
+                <item android:offset="1" android:color="#FF6B35"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Белый play-треугольник -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M46,36 L76,54 L46,72 Z" />
+
+    <!-- Тонкое кольцо вокруг -->
+    <path
+        android:strokeColor="#40FFFFFF"
+        android:strokeWidth="1.5"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,12 A42,42 0 1,1 54,96 A42,42 0 1,1 54,12 Z" />
+</vector>

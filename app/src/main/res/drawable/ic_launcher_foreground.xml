@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Мягкое свечение -->
+    <path
+        android:pathData="M54,24 A30,30 0 1,1 54,84 A30,30 0 1,1 54,24 Z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:startX="54" android:startY="24"
+                android:endX="54" android:endY="84"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF3B5C"/>
+                <item android:offset="1" android:color="#FF6B35"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Белый play -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M47,38 L73,54 L47,70 Z" />
+
+    <!-- Кольцо -->
+    <path
+        android:strokeColor="#40FFFFFF"
+        android:strokeWidth="1.2"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M54,18 A36,36 0 1,1 54,90 A54,54 0 1,1 54,18 Z" />
+</vector>
