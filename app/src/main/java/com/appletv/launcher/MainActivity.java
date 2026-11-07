@@ -146,13 +146,11 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        SettingsManager.startSleepTimer(this);
         SettingsManager.applyTimeFormat(this);
-        setupDynamicGrid();
         SettingsManager.applyBackgroundMode(this);
         SettingsManager.applyClockVisibility(this);
-        SettingsManager.applyTimeFormat(this);
         SettingsManager.startSleepTimer(this);
+        setupDynamicGrid();
     }
 
     private void setupGlobalFocusListener() {
