@@ -12,6 +12,7 @@
         android:alpha="0.6" />
 
     <LinearLayout
+        android:id="@+id/onboarding_content"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -20,14 +21,6 @@
         android:paddingEnd="120dp"
         android:paddingTop="60dp"
         android:paddingBottom="60dp">
-
-        <!-- Иконка -->
-        <ImageView
-            android:id="@+id/onboarding_icon"
-            android:layout_width="140dp"
-            android:layout_height="140dp"
-            android:src="@drawable/ic_launcher"
-            android:layout_marginBottom="32dp" />
 
         <!-- Заголовок -->
         <TextView
@@ -69,6 +62,10 @@
             android:background="@drawable/bg_settings_row_normal"
             android:paddingStart="48dp"
             android:paddingEnd="48dp"
+            android:paddingTop="0dp"
+            android:paddingBottom="0dp"
+            android:gravity="center"
+            android:includeFontPadding="false"
             android:focusable="true"
             android:clickable="true" />
 
