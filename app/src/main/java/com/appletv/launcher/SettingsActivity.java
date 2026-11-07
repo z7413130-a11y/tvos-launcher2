@@ -22,7 +22,7 @@ public class SettingsActivity extends Activity {
     private TextView titleView;
     private SharedPreferences prefs;
 
-    private enum MenuState { MAIN, GENERAL, APPEARANCE, HOME_SCREEN, SYSTEM, ABOUT, SLEEP_OPTIONS }
+    private enum MenuState { MAIN, GENERAL, APPEARANCE, HOME_SCREEN, SYSTEM, ABOUT, SLEEP_OPTIONS, LANGUAGE }
     private MenuState currentState = MenuState.MAIN;
     private int currentLeftIconId = -1;
 
@@ -193,10 +193,7 @@ public class SettingsActivity extends Activity {
             catch (Exception e) { showToast("Не удалось открыть"); }
         }, true);
 
-        addItem("Язык", "", R.drawable.ic_panel_system, () -> {
-            try { startActivity(new Intent(android.provider.Settings.ACTION_LOCALE_SETTINGS)); }
-            catch (Exception e) { showToast("Не удалось открыть"); }
-        }, true);
+        addItem("Язык", getCurrentLangLabel(), R.drawable.ic_panel_system, this::loadLanguageMenu, true);
 
         addItem("Сброс всех настроек", "", R.drawable.ic_panel_system, () -> {
             prefs.edit().clear().apply();

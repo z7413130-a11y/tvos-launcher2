@@ -98,6 +98,11 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(LocaleHelper.onAttach(newBase));
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -119,14 +124,6 @@ public class MainActivity extends Activity {
         dockRecycler = findViewById(R.id.dock_recycler);
         gridRecycler = findViewById(R.id.grid_recycler);
 
-        View btnSettings = findViewById(R.id.btn_launcher_settings);
-        if (btnSettings != null) {
-            btnSettings.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, SettingsActivity.class)));
-        }
-        View clockView = findViewById(R.id.main_text_clock);
-        if (clockView != null) {
-            clockView.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, SettingsActivity.class)));
-        }
         
         if (dockContainer != null) {
             dockContainer.setOutlineProvider(new ViewOutlineProvider() {

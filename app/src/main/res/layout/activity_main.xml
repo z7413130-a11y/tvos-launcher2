@@ -27,7 +27,6 @@
             android:background="@drawable/hero_gradient_overlay" />
     </FrameLayout>
 
-
     <View
         android:id="@+id/ambient_glow_bg"
         android:layout_width="match_parent"
@@ -63,7 +62,6 @@
             android:orientation="vertical"
             android:paddingBottom="120dp">
 
-            <!-- Идеальный отступ 390dp -->
             <Space
                 android:layout_width="match_parent"
                 android:layout_height="390dp" />
@@ -159,24 +157,9 @@
                 android:format12Hour="h:mm a"
                 android:textColor="#CCFFFFFF"
                 android:textSize="13sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:padding="6dp" />
 
-            <FrameLayout
-                android:id="@+id/btn_launcher_settings"
-                android:layout_width="26dp"
-                android:layout_height="26dp"
-                android:layout_marginStart="8dp"
-                android:focusable="false"
-                android:clickable="false">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:text="⚙"
-                    android:textColor="#CCFFFFFF"
-                    android:textSize="14sp" />
-            </FrameLayout>
         </LinearLayout>
     </RelativeLayout>
 </RelativeLayout>
