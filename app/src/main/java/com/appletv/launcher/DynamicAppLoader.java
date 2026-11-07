@@ -1,98 +1,123 @@
 package com.appletv.launcher;
 
-import android.content.Context;
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.view.Gravity;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DynamicAppLoader {
 
-    public static void loadApps(Context context, LinearLayout container) {
+    public static void loadApps(Activity activity, LinearLayout container) {
+        if (container == null) return;
         container.removeAllViews();
-        PackageManager pm = context.getPackageManager();
 
-        // Ищем приложения для Android TV (Leanback)
-        Intent intent = new Intent(Intent.ACTION_MAIN, null);
-        intent.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        List<ResolveInfo> apps = pm.queryIntentActivities(intent, 0);
+        PackageManager pm = activity.getPackageManager();
+        Map<String, ResolveInfo> uniqueApps = new HashMap<>();
 
-        // Если телевизор/эмулятор без Leanback, ищем обычные
-        if (apps.isEmpty()) {
-            intent.removeCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-            intent.addCategory(Intent.CATEGORY_LAUNCHER);
-            apps = pm.queryIntentActivities(intent, 0);
+        // ТВ-приложения
+        Intent leanback = new Intent(Intent.ACTION_MAIN, null);
+        leanback.addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+        for (ResolveInfo ri : pm.queryIntentActivities(leanback, 0)) {
+            uniqueApps.put(ri.activityInfo.packageName, ri);
         }
 
-        for (ResolveInfo info : apps) {
-            String pkg = info.activityInfo.packageName;
-            if (pkg.equals(context.getPackageName())) continue; // Пропускаем сам лаунчер
-
-            View card = buildAppCard(context, pm, info, pkg);
-            container.addView(card);
-        }
-    }
-
-    private static View buildAppCard(Context context, PackageManager pm, ResolveInfo info, String pkg) {
-        LinearLayout card = new LinearLayout(context);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setGravity(Gravity.CENTER);
-        card.setFocusable(true);
-        card.setClickable(true);
-
-        int margin = dpToPx(context, 16);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dpToPx(context, 140), ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.setMargins(margin, margin, margin, margin);
-        card.setLayoutParams(params);
-
-        ImageView icon = new ImageView(context);
-        Drawable appIcon = info.loadIcon(pm);
-        icon.setImageDrawable(appIcon);
-        icon.setLayoutParams(new LinearLayout.LayoutParams(dpToPx(context, 120), dpToPx(context, 120)));
-        icon.setBackgroundResource(R.drawable.status_pill_bg);
-        icon.setPadding(dpToPx(context, 10), dpToPx(context, 10), dpToPx(context, 10), dpToPx(context, 10));
-
-        TextView label = new TextView(context);
-        label.setText(info.loadLabel(pm));
-        label.setTextColor(Color.WHITE);
-        label.setGravity(Gravity.CENTER);
-        label.setSingleLine(true);
-        label.setAlpha(0.6f);
-        label.setPadding(0, dpToPx(context, 12), 0, 0);
-
-        card.addView(icon);
-        card.addView(label);
-
-        // Обработчик запуска
-        card.setOnClickListener(v -> {
-            Intent launchIntent = pm.getLaunchIntentForPackage(pkg);
-            if (launchIntent != null) context.startActivity(launchIntent);
-        });
-
-        // Обработчик фокуса (масштаб + анимация)
-        card.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) {
-                card.animate().scaleX(1.15f).scaleY(1.15f).setDuration(200).start();
-                label.setAlpha(1.0f);
-                // Позже сюда мы подключим BannerManager
-            } else {
-                card.animate().scaleX(1.0f).scaleY(1.0f).setDuration(200).start();
-                label.setAlpha(0.6f);
+        // Обычные приложения
+        Intent launcher = new Intent(Intent.ACTION_MAIN, null);
+        launcher.addCategory(Intent.CATEGORY_LAUNCHER);
+        for (ResolveInfo ri : pm.queryIntentActivities(launcher, 0)) {
+            if (!uniqueApps.containsKey(ri.activityInfo.packageName)) {
+                uniqueApps.put(ri.activityInfo.packageName, ri);
             }
-        });
+        }
 
-        return card;
+        List<ResolveInfo> apps = new ArrayList<>(uniqueApps.values());
+        Collections.sort(apps, (a, b) ->
+                a.loadLabel(pm).toString().compareToIgnoreCase(b.loadLabel(pm).toString()));
+
+        int itemWidth = dp(activity, 120);
+
+        for (ResolveInfo ri : apps) {
+            if (ri.activityInfo.packageName.equals(activity.getPackageName())) continue;
+
+            String label = ri.loadLabel(pm).toString();
+            Drawable icon = ri.loadIcon(pm);
+
+            LinearLayout item = new LinearLayout(activity);
+            item.setOrientation(LinearLayout.VERTICAL);
+            item.setGravity(Gravity.CENTER);
+            item.setFocusable(true);
+            item.setClickable(true);
+            item.setPadding(dp(activity, 8), dp(activity, 8), dp(activity, 8), dp(activity, 8));
+
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    itemWidth, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.setMargins(dp(activity, 8), 0, dp(activity, 8), 0);
+            item.setLayoutParams(lp);
+
+            ImageView iconView = new ImageView(activity);
+            int iconSize = dp(activity, 56);
+            iconView.setLayoutParams(new LinearLayout.LayoutParams(iconSize, iconSize));
+            iconView.setImageDrawable(icon);
+            iconView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            item.addView(iconView);
+
+            TextView labelView = new TextView(activity);
+            labelView.setText(label);
+            labelView.setTextColor(Color.WHITE);
+            labelView.setTextSize(13f);
+            labelView.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            labelView.setSingleLine(true);
+            labelView.setGravity(Gravity.CENTER);
+            LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            labelLp.topMargin = dp(activity, 6);
+            labelView.setLayoutParams(labelLp);
+            item.addView(labelView);
+
+            // Анимация фокуса
+            item.setOnFocusChangeListener((v, hasFocus) -> {
+                if (hasFocus) {
+                    item.animate().scaleX(1.12f).scaleY(1.12f).setDuration(200).start();
+                    iconView.setAlpha(1f);
+                    labelView.setAlpha(1f);
+                } else {
+                    item.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start();
+                    iconView.setAlpha(0.85f);
+                    labelView.setAlpha(0.7f);
+                }
+            });
+
+            // Запуск приложения
+            item.setOnClickListener(v -> {
+                Intent launch = pm.getLeanbackLaunchIntentForPackage(ri.activityInfo.packageName);
+                if (launch == null) launch = pm.getLaunchIntentForPackage(ri.activityInfo.packageName);
+                if (launch != null) {
+                    activity.startActivity(launch);
+                } else {
+                    android.widget.Toast.makeText(activity,
+                            "Не удалось запустить: " + label,
+                            android.widget.Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            container.addView(item);
+        }
     }
 
-    private static int dpToPx(Context context, int dp) {
-        return (int) (dp * context.getResources().getDisplayMetrics().density + 0.5f);
+    private static int dp(Activity activity, int dp) {
+        return (int) (dp * activity.getResources().getDisplayMetrics().density + 0.5f);
     }
 }

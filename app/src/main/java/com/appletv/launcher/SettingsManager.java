@@ -13,13 +13,17 @@ public class SettingsManager {
     private static Runnable sleepRunnable;
 
     public static void applyTimeFormat(Activity activity) {
-        int clockId = activity.getResources().getIdentifier("main_text_clock", "id", activity.getPackageName());
+        // Ищем clock_tv (как в новом activity_main.xml), затем запасной вариант
+        int clockId = activity.getResources().getIdentifier("clock_tv", "id", activity.getPackageName());
+        if (clockId == 0) clockId = activity.getResources().getIdentifier("main_text_clock", "id", activity.getPackageName());
+
         if (clockId != 0) {
             View view = activity.findViewById(clockId);
             if (view instanceof TextClock) {
                 TextClock clock = (TextClock) view;
                 SharedPreferences prefs = activity.getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
                 int timeFormat = prefs.getInt("time_format", 0);
+
                 if (timeFormat == 1) {
                     clock.setFormat12Hour("h:mm a");
                     clock.setFormat24Hour(null);
@@ -34,6 +38,7 @@ public class SettingsManager {
     public static void startSleepTimer(Activity activity) {
         SharedPreferences prefs = activity.getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
         int sleepTimeIdx = prefs.getInt("sleep_timeout", 0);
+
         long timeoutMs = 0;
         if (sleepTimeIdx == 1) timeoutMs = 5 * 60 * 1000;
         else if (sleepTimeIdx == 2) timeoutMs = 15 * 60 * 1000;
