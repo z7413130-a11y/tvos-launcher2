@@ -153,23 +153,6 @@ public class SettingsActivity extends Activity {
             showToast("Фон изменен: " + bgLabels[next]);
         }, true);
 
-        // Масштаб интерфейса: 0.85 / 1.0 / 1.15
-        float scale = prefs.getFloat("ui_scale", 1.0f);
-        String scaleLabel;
-        if (scale < 0.95f) scaleLabel = "Мелкий (85%)";
-        else if (scale > 1.05f) scaleLabel = "Крупный (115%)";
-        else scaleLabel = "Стандартный (100%)";
-
-        addItem("Масштаб интерфейса", scaleLabel, R.drawable.ic_panel_appearance, () -> {
-            float next;
-            if (scale < 0.95f) next = 1.0f;
-            else if (scale < 1.05f) next = 1.15f;
-            else next = 0.85f;
-            prefs.edit().putFloat("ui_scale", next).apply();
-            loadAppearanceMenu();
-            showToast("Масштаб: " + Math.round(next * 100) + "% (применится на главном экране)");
-        }, true);
-
         requestFirstFocus();
     }
 
