@@ -4,13 +4,6 @@
     android:layout_height="match_parent"
     android:background="#0A0A0C">
 
-    <!-- Мягкое свечение сверху -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="360dp"
-        android:background="@drawable/hero_gradient_overlay"
-        android:alpha="0.6" />
-
     <LinearLayout
         android:id="@+id/onboarding_content"
         android:layout_width="match_parent"
