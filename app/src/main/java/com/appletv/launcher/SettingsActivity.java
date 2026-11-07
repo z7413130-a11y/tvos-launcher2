@@ -303,4 +303,35 @@ public class SettingsActivity extends Activity {
     }
 
     private int dpToPx(int dp) { return (int) (dp * getResources().getDisplayMetrics().density + 0.5f); }
+
+    // ==================== ЯЗЫК ====================
+    private String getCurrentLangLabel() {
+        return "en".equals(LocaleHelper.getLanguage(this)) ? "English" : "Русский";
+    }
+
+    private void loadLanguageMenu() {
+        currentState = MenuState.LANGUAGE;
+        titleView.setText(LocaleHelper.tr(this, "Язык", "Language"));
+        listContainer.removeAllViews();
+        updateLeftIcon(R.drawable.ic_panel_system);
+
+        String current = LocaleHelper.getLanguage(this);
+
+        addItem("Русский", "ru".equals(current) ? "✓" : "", R.drawable.ic_panel_system, () -> {
+            LocaleHelper.setLanguage(this, "ru");
+            recreate();
+        }, false);
+
+        addItem("English", "en".equals(current) ? "✓" : "", R.drawable.ic_panel_system, () -> {
+            LocaleHelper.setLanguage(this, "en");
+            recreate();
+        }, false);
+
+        requestFirstFocus();
+    }
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(LocaleHelper.onAttach(newBase));
+    }
 }
