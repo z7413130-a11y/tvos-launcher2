@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0A0A0C">
+
+    <!-- Мягкое свечение сверху -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="360dp"
+        android:background="@drawable/hero_gradient_overlay"
+        android:alpha="0.6" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:paddingStart="120dp"
+        android:paddingEnd="120dp"
+        android:paddingTop="60dp"
+        android:paddingBottom="60dp">
+
+        <!-- Иконка -->
+        <ImageView
+            android:id="@+id/onboarding_icon"
+            android:layout_width="140dp"
+            android:layout_height="140dp"
+            android:src="@drawable/ic_launcher"
+            android:layout_marginBottom="32dp" />
+
+        <!-- Заголовок -->
+        <TextView
+            android:id="@+id/onboarding_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Привет!"
+            android:textColor="#FFFFFF"
+            android:textSize="38sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-black"
+            android:gravity="center"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Описание -->
+        <TextView
+            android:id="@+id/onboarding_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#CCCCCC"
+            android:textSize="18sp"
+            android:fontFamily="sans-serif"
+            android:gravity="center"
+            android:lineSpacingExtra="6dp"
+            android:layout_marginBottom="48dp" />
+
+        <!-- Кнопка "Далее" / "Начать" -->
+        <Button
+            android:id="@+id/onboarding_button"
+            android:layout_width="wrap_content"
+            android:layout_height="56dp"
+            android:minWidth="220dp"
+            android:text="Далее"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium"
+            android:background="@drawable/bg_settings_row_normal"
+            android:paddingStart="48dp"
+            android:paddingEnd="48dp"
+            android:focusable="true"
+            android:clickable="true" />
+
+        <!-- Индикатор шагов -->
+        <LinearLayout
+            android:id="@+id/onboarding_dots"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="32dp"
+            android:gravity="center" />
+    </LinearLayout>
+</FrameLayout>

@@ -26,6 +26,11 @@
             android:name=".SettingsActivity"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
             android:exported="true" />
+
+        <activity
+            android:name=".OnboardingActivity"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+            android:exported="false" />
     </application>
 
 </manifest>

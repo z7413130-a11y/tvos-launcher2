@@ -105,9 +105,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
+        // Первый запуск? Показываем онбординг
         prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
+        if (!prefs.getBoolean("onboarding_done", false)) {
+            startActivity(new Intent(this, OnboardingActivity.class));
+        }
+
+        setContentView(R.layout.activity_main);
 
         fallbackBanners.put("youtube", R.drawable.banner_youtube);
         fallbackBanners.put("kinopoisk", R.drawable.banner_kinopoisk);
