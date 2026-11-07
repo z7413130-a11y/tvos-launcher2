@@ -13,7 +13,6 @@ public class SettingsManager {
     private static Runnable sleepRunnable;
 
     public static void applyTimeFormat(Activity activity) {
-        // Ищем clock_tv (как в новом activity_main.xml), затем запасной вариант
         int clockId = activity.getResources().getIdentifier("clock_tv", "id", activity.getPackageName());
         if (clockId == 0) clockId = activity.getResources().getIdentifier("main_text_clock", "id", activity.getPackageName());
 
@@ -32,6 +31,29 @@ public class SettingsManager {
                     clock.setFormat12Hour(null);
                 }
             }
+        }
+    }
+
+    /** Скрыть/показать блок часов (time_pill_container в красивом layout). */
+    public static void applyClockVisibility(Activity activity) {
+        SharedPreferences prefs = activity.getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
+        boolean show = prefs.getBoolean("show_clock", true);
+        int id = activity.getResources().getIdentifier("time_pill_container", "id", activity.getPackageName());
+        if (id == 0) id = activity.getResources().getIdentifier("clock_tv", "id", activity.getPackageName());
+        if (id != 0) {
+            View v = activity.findViewById(id);
+            if (v != null) v.setVisibility(show ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    /** Применить режим фона: 0 = подсветка (баннеры скрыты), 1 = баннеры. */
+    public static void applyBackgroundMode(Activity activity) {
+        SharedPreferences prefs = activity.getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
+        int bgMode = prefs.getInt("bg_mode", 0);
+        int id = activity.getResources().getIdentifier("banner_container", "id", activity.getPackageName());
+        if (id != 0) {
+            View banner = activity.findViewById(id);
+            if (banner != null) banner.setVisibility(bgMode == 1 ? View.VISIBLE : View.GONE);
         }
     }
 

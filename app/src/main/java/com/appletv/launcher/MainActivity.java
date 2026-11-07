@@ -118,6 +118,15 @@ public class MainActivity extends Activity {
         gridDarkOverlay = findViewById(R.id.grid_dark_overlay);
         dockRecycler = findViewById(R.id.dock_recycler);
         gridRecycler = findViewById(R.id.grid_recycler);
+
+        View btnSettings = findViewById(R.id.btn_launcher_settings);
+        if (btnSettings != null) {
+            btnSettings.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, SettingsActivity.class)));
+        }
+        View clockView = findViewById(R.id.main_text_clock);
+        if (clockView != null) {
+            clockView.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, SettingsActivity.class)));
+        }
         
         if (dockContainer != null) {
             dockContainer.setOutlineProvider(new ViewOutlineProvider() {
@@ -143,6 +152,10 @@ public class MainActivity extends Activity {
         SettingsManager.startSleepTimer(this);
         SettingsManager.applyTimeFormat(this);
         setupDynamicGrid();
+        SettingsManager.applyBackgroundMode(this);
+        SettingsManager.applyClockVisibility(this);
+        SettingsManager.applyTimeFormat(this);
+        SettingsManager.startSleepTimer(this);
     }
 
     private void setupGlobalFocusListener() {
