@@ -13,8 +13,8 @@ public class SettingsManager {
     private static Runnable sleepRunnable;
 
     public static void applyTimeFormat(Activity activity) {
-        int clockId = activity.getResources().getIdentifier("clock_tv", "id", activity.getPackageName());
-        if (clockId == 0) clockId = activity.getResources().getIdentifier("textClock", "id", activity.getPackageName());
+        // Ищем часы строго по их реальному ID в разметке
+        int clockId = activity.getResources().getIdentifier("main_text_clock", "id", activity.getPackageName());
         
         if (clockId != 0) {
             View view = activity.findViewById(clockId);
@@ -23,7 +23,6 @@ public class SettingsManager {
                 SharedPreferences prefs = activity.getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
                 int timeFormat = prefs.getInt("time_format", 0);
                 
-                // Символ 'a' автоматически выводит AM или PM
                 if (timeFormat == 1) {
                     clock.setFormat12Hour("h:mm a");
                     clock.setFormat24Hour(null);

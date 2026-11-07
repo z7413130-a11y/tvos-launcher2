@@ -57,7 +57,7 @@ public class SettingsActivity extends Activity {
         currentLeftIconId = -1; // Сброс при возврате в главное меню
 
         addItem("Основные", "", R.drawable.ic_panel_info, this::loadGeneralMenu, true);
-        addItem("Оформление", "", R.drawable.ic_panel_appearance, () -> showToast("В разработке"), true);
+        addItem("Оформление", "", R.drawable.ic_panel_appearance, this::loadAppearanceMenu, true);
         addItem("Главный экран", "", R.drawable.ic_panel_home, () -> showToast("В разработке"), true);
         addItem("Система", "", R.drawable.ic_panel_system, this::loadSystemMenu, true);
         addItem("О лаунчере", "", R.drawable.ic_panel_info, this::loadAboutMenu, true);
@@ -114,6 +114,24 @@ public class SettingsActivity extends Activity {
     }
 
     // --- СИСТЕМА ---
+    
+    private void loadAppearanceMenu() {
+        currentState = MenuState.GENERAL; // Переиспользуем состояние, чтобы не ломать enum
+        titleView.setText("Оформление");
+        listContainer.removeAllViews();
+        updateLeftIcon(R.drawable.ic_panel_appearance);
+
+        int bgMode = prefs.getInt("bg_mode", 0);
+        String[] modes = {"Подсветка", "Баннеры"};
+        addItem("Режим фона", modes[bgMode], R.drawable.ic_panel_appearance, () -> {
+            prefs.edit().putInt("bg_mode", bgMode == 0 ? 1 : 0).apply();
+            loadAppearanceMenu();
+            showToast("Режим фона изменен");
+        }, true);
+        
+        requestFirstFocus();
+    }
+
     private void loadSystemMenu() {
         currentState = MenuState.SYSTEM;
         titleView.setText("Система");
