@@ -87,11 +87,29 @@ public class SettingsActivity extends Activity {
         addItem("Заставка (Спящий режим)", sleepLabels[sleepTime], R.drawable.ic_panel_info, this::loadSleepOptionsMenu, true);
 
         addItem("Лаунчер по умолчанию", "", R.drawable.ic_panel_info, () -> {
-            try { startActivity(new Intent(android.provider.Settings.ACTION_HOME_SETTINGS)); }
-            catch (Exception e) {
-                try { startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS)); }
-                catch (Exception ex) { showToast("Не удалось открыть настройки"); }
+            // 1) Пытаемся открыть системный диалог выбора HOME-приложения
+            try {
+                Intent home = new Intent(Intent.ACTION_MAIN);
+                home.addCategory(Intent.CATEGORY_HOME);
+                home.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(home);
+                showToast("Выберите лаунчер в открывшемся окне");
+                return;
+            } catch (Exception ignored) {}
+
+            // 2) API 24+: экран «Приложения по умолчанию»
+            if (android.os.Build.VERSION.SDK_INT >= 24) {
+                try {
+                    Intent def = new Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS);
+                    startActivity(def);
+                    showToast("Откройте «Главный экран» и выберите лаунчер");
+                    return;
+                } catch (Exception ignored) {}
             }
+
+            // 3) Fallback: общие настройки
+            try { startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS)); }
+            catch (Exception e) { showToast("Не удалось открыть настройки"); }
         }, true);
 
         requestFirstFocus();

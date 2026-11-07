@@ -64,6 +64,7 @@ public class BannerManager {
         }
         
         bannerContainer.setVisibility(View.VISIBLE);
+        bannerContainer.invalidate();
         
         int bg1Id = activity.getResources().getIdentifier("banner_bg_1", "id", activity.getPackageName());
         int bg2Id = activity.getResources().getIdentifier("banner_bg_2", "id", activity.getPackageName());

@@ -232,7 +232,12 @@ public class MainActivity extends Activity {
         return prefs.getFloat("ui_scale", 1.0f);
     }
 
+    private void recomputeScale() {
+        currentUiScale = getUiScale();
+    }
+
     private void setupDynamicGrid() {
+        recomputeScale();
         if (gridRecycler == null) return;
         
         currentUiScale = getUiScale();
@@ -679,6 +684,7 @@ public class MainActivity extends Activity {
                     vh.scaleAnim.setInterpolator(new OvershootInterpolator(1.1f));
                     vh.scaleAnim.start();
 
+                    BannerManager.getInstance().updateBackground(MainActivity.this, item.packageName);
                     animateAmbientGlow(item.dominantColor);
                     
                     vh.glareOverlay.animate().alpha(1f).setDuration(300).start();
