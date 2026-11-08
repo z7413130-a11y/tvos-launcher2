@@ -157,6 +157,14 @@ public class SettingsActivity extends Activity {
             showToast(getString(R.string.toast_bg_changed, bgLabels[next]));
         }, true);
 
+        int themeMode = ThemeManager.getThemeMode(this);
+        String[] themeLabels = {getString(R.string.theme_dark), getString(R.string.theme_light)};
+        addItem(getString(R.string.settings_theme), themeLabels[themeMode], R.drawable.ic_panel_appearance, () -> {
+            int next = (themeMode + 1) % themeLabels.length;
+            ThemeManager.setThemeMode(this, next);
+            showToast(getString(R.string.theme_changed));
+        }, true);
+
         requestFirstFocus();
     }
 
