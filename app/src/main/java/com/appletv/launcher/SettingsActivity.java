@@ -42,6 +42,10 @@ public class SettingsActivity extends Activity {
         setContentView(R.layout.activity_settings);
         SoundManager.init(this);
         ThemeManager.applyBackground(findViewById(android.R.id.content), this);
+        View leftPanel = findViewById(R.id.dynamic_left_icon);
+        if (leftPanel != null && leftPanel.getParent() instanceof View) {
+            ((View) leftPanel.getParent()).setBackground(ThemeManager.settingsLeftPanel(this));
+        }
         prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
         dynamicLeftIcon = findViewById(R.id.dynamic_left_icon);
         listContainer = findViewById(R.id.settings_list_container);
@@ -274,15 +278,7 @@ public class SettingsActivity extends Activity {
         if (onClick == null) { row.setFocusable(false); row.setClickable(false); }
         else { row.setFocusable(true); row.setClickable(true); row.setOnClickListener(v -> onClick.run()); }
         row.setPadding(dpToPx(16), 0, dpToPx(16), 0);
-        boolean light = ThemeManager.isLight(this);
-        if (light) {
-            GradientDrawable gd = new GradientDrawable();
-            gd.setColor(0x14000000);
-            gd.setCornerRadius(dpToPx(6));
-            row.setBackground(gd);
-        } else {
-            row.setBackgroundResource(R.drawable.bg_settings_row_normal);
-        }
+        row.setBackground(ThemeManager.rowNormal(this));
 
         TextView label = new TextView(this);
         label.setText(text);
@@ -312,18 +308,15 @@ public class SettingsActivity extends Activity {
             if (hasFocus) {
                 SoundManager.playFocus();
                 scrollRowIntoView(row);
-                boolean light2 = ThemeManager.isLight(this);
-                GradientDrawable gd = new GradientDrawable();
-                gd.setColor(light2 ? 0xFF000000 : 0xFFFFFFFF);
-                gd.setCornerRadius(dpToPx(8));
-                row.setBackground(gd);
-                label.setTextColor(light2 ? 0xFFFFFFFF : 0xFF000000);
-                arrow.setTextColor(light2 ? 0xFFFFFFFF : 0xFF000000);
+                row.setBackground(ThemeManager.rowFocused(this));
+                int fg = ThemeManager.rowFocusedText(this);
+                label.setTextColor(fg);
+                arrow.setTextColor(fg);
                 row.animate().scaleX(1.02f).scaleY(1.02f).setDuration(150).start();
                 if (currentState == MenuState.MAIN) updateLeftIcon(iconResId);
             } else {
-                row.setBackgroundResource(R.drawable.bg_settings_row_normal);
-                label.setTextColor(Color.WHITE);
+                row.setBackground(ThemeManager.rowNormal(this));
+                label.setTextColor(ThemeManager.textPrimary(this));
                 arrow.setTextColor(Color.parseColor("#777777"));
                 row.animate().scaleX(1.0f).scaleY(1.0f).setDuration(150).start();
             }

@@ -116,6 +116,17 @@ public class MainActivity extends Activity {
         SoundManager.init(this);
         ThemeManager.applyBackground(findViewById(android.R.id.content), this);
 
+        // Док
+        if (dockContainer != null) dockContainer.setBackground(ThemeManager.dockBackground(this));
+        // Hero gradient overlay (второй View после banner_container)
+        View heroOverlay = findViewById(R.id.hero_gradient_overlay);
+        if (heroOverlay != null) heroOverlay.setBackground(ThemeManager.heroGradient(this));
+        // Top fade
+        View topFade = findViewById(R.id.top_fade_gradient);
+        if (topFade != null) topFade.setBackground(ThemeManager.topFade(this));
+        // Status pill
+        if (timePillContainer != null) timePillContainer.setBackground(ThemeManager.statusPill(this));
+
         prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
 
         fallbackBanners.put("youtube", R.drawable.banner_youtube);
@@ -159,6 +170,10 @@ public class MainActivity extends Activity {
         SettingsManager.applyBackgroundMode(this);
         SettingsManager.applyClockVisibility(this);
         SettingsManager.startSleepTimer(this);
+        // Тема: обновить фон и элементы (если изменилась)
+        ThemeManager.applyBackground(findViewById(android.R.id.content), this);
+        if (dockContainer != null) dockContainer.setBackground(ThemeManager.dockBackground(this));
+        if (timePillContainer != null) timePillContainer.setBackground(ThemeManager.statusPill(this));
         setupDynamicGrid();
     }
 
