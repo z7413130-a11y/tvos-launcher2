@@ -2,7 +2,6 @@ package com.appletv.launcher;
 
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
-import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -25,68 +24,37 @@ public class OnboardingActivity extends Activity {
     private TextView subtitleView;
     private Button actionButton;
     private LinearLayout dotsContainer;
-    private View contentContainer;
-
     private int step = 0;
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(LocaleHelper.onAttach(newBase));
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_onboarding);
-
         SharedPreferences prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        if (prefs.getBoolean(KEY_DONE, false)) {
-            finish();
-            return;
-        }
-
+        if (prefs.getBoolean(KEY_DONE, false)) { finish(); return; }
         titleView = findViewById(R.id.onboarding_title);
         subtitleView = findViewById(R.id.onboarding_subtitle);
         actionButton = findViewById(R.id.onboarding_button);
         dotsContainer = findViewById(R.id.onboarding_dots);
-        contentContainer = findViewById(R.id.onboarding_content);
-
         buildDots();
         showStep(0, true);
-
-        // Плавный фокус на кнопке (Apple TV style)
         actionButton.setOnFocusChangeListener((v, hasFocus) -> {
-            if (hasFocus) {
-                actionButton.animate()
-                        .scaleX(1.08f).scaleY(1.08f)
-                        .setDuration(220)
-                        .setInterpolator(new OvershootInterpolator(1.4f))
-                        .start();
-            } else {
-                actionButton.animate()
-                        .scaleX(1.0f).scaleY(1.0f)
-                        .setDuration(180)
-                        .setInterpolator(new DecelerateInterpolator())
-                        .start();
-            }
+            if (hasFocus) actionButton.animate().scaleX(1.08f).scaleY(1.08f).setDuration(220).setInterpolator(new OvershootInterpolator(1.4f)).start();
+            else actionButton.animate().scaleX(1.0f).scaleY(1.0f).setDuration(180).setInterpolator(new DecelerateInterpolator()).start();
         });
-
         actionButton.setOnClickListener(v -> {
-            // Лёгкий «нажим» перед переходом
-            actionButton.animate()
-                    .scaleX(0.94f).scaleY(0.94f)
-                    .setDuration(90)
-                    .withEndAction(() -> {
-                        actionButton.animate().scaleX(1.08f).scaleY(1.08f).setDuration(120).start();
-                        handleNext();
-                    }).start();
+            actionButton.animate().scaleX(0.94f).scaleY(0.94f).setDuration(90).withEndAction(() -> {
+                actionButton.animate().scaleX(1.08f).scaleY(1.08f).setDuration(120).start();
+                if (step == 1) openHomePicker();
+                if (step < TOTAL_STEPS - 1) showStep(step + 1, false);
+                else finishOnboarding();
+            }).start();
         });
-    }
-
-    private void handleNext() {
-        if (step == 1) {
-            openHomePicker();
-        }
-        if (step < TOTAL_STEPS - 1) {
-            showStep(step + 1, false);
-        } else {
-            finishOnboarding();
-        }
     }
 
     private void buildDots() {
@@ -100,117 +68,60 @@ public class OnboardingActivity extends Activity {
             dot.setAlpha(0.3f);
             dotsContainer.addView(dot);
         }
-        updateDots(true);
+        updateDots(false);
     }
 
     private void updateDots(boolean animate) {
         for (int i = 0; i < dotsContainer.getChildCount(); i++) {
             View dot = dotsContainer.getChildAt(i);
             float target = i == step ? 1f : 0.3f;
-            if (animate) {
-                dot.animate().alpha(target).setDuration(320).start();
-                // Активная точка чуть крупнее
-                float scale = i == step ? 1.35f : 1.0f;
-                dot.animate().scaleX(scale).scaleY(scale).setDuration(320).start();
-            } else {
-                dot.setAlpha(target);
-                dot.setScaleX(i == step ? 1.35f : 1.0f);
-                dot.setScaleY(i == step ? 1.35f : 1.0f);
-            }
+            float scale = i == step ? 1.35f : 1.0f;
+            if (animate) { dot.animate().alpha(target).setDuration(320).start(); dot.animate().scaleX(scale).scaleY(scale).setDuration(320).start(); }
+            else { dot.setAlpha(target); dot.setScaleX(scale); dot.setScaleY(scale); }
         }
     }
 
-    /** Плавная смена шага: fade-out -> смена текста -> fade-in + slide-up */
     private void showStep(int newStep, boolean firstShow) {
         step = newStep;
-
         Runnable applyText = () -> {
-            if (step == 0) {
-                titleView.setText("Привет!");
-                subtitleView.setText("Представляю вашему вниманию лаунчер\n\nApplineTV\n\nСтильный, быстрый и удобный лаунчер для вашего телевизора.");
-                actionButton.setText("Далее");
-            } else if (step == 1) {
-                titleView.setText("Лаунчер по умолчанию");
-                subtitleView.setText("Чтобы ApplineTV запускался при нажатии кнопки «Домой», сделайте его лаунчером по умолчанию.\n\nНажмите «Далее», чтобы открыть системное меню выбора, или пропустите этот шаг.");
-                actionButton.setText("Далее");
-            } else {
-                titleView.setText("Бета-версия");
-                subtitleView.setText("⚠️ Это бета-версия ApplineTV.\n\nВозможны баги, недочёты и нестабильная работа. Мы активно дорабатываем лаунчер — спасибо, что тестируете!\n\nНажмите «Начать», чтобы перейти на главный экран.");
-                actionButton.setText("Начать");
-            }
+            if (step == 0) { titleView.setText(R.string.onb_welcome_title); subtitleView.setText(R.string.onb_welcome_subtitle); actionButton.setText(R.string.onb_next); }
+            else if (step == 1) { titleView.setText(R.string.onb_default_title); subtitleView.setText(R.string.onb_default_subtitle); actionButton.setText(R.string.onb_next); }
+            else { titleView.setText(R.string.onb_beta_title); subtitleView.setText(R.string.onb_beta_subtitle); actionButton.setText(R.string.onb_start); }
             updateDots(true);
         };
-
         if (firstShow) {
-            // Первый показ: сразу текст + плавное появление всего блока
             applyText.run();
-            titleView.setAlpha(0f);
-            subtitleView.setAlpha(0f);
-            actionButton.setAlpha(0f);
-            contentContainer.setAlpha(1f);
-
+            titleView.setAlpha(0f); subtitleView.setAlpha(0f); actionButton.setAlpha(0f);
             AnimatorSet set = new AnimatorSet();
-            ObjectAnimator t = ObjectAnimator.ofFloat(titleView, View.ALPHA, 0f, 1f);
-            t.setDuration(500);
-            ObjectAnimator s = ObjectAnimator.ofFloat(subtitleView, View.ALPHA, 0f, 1f);
-            s.setDuration(600);
-            s.setStartDelay(120);
-            ObjectAnimator b = ObjectAnimator.ofFloat(actionButton, View.ALPHA, 0f, 1f);
-            b.setDuration(500);
-            b.setStartDelay(260);
-
-            set.playTogether(t, s, b);
-            set.setInterpolator(new DecelerateInterpolator());
-            set.start();
-
+            ObjectAnimator t = ObjectAnimator.ofFloat(titleView, View.ALPHA, 0f, 1f); t.setDuration(500);
+            ObjectAnimator s = ObjectAnimator.ofFloat(subtitleView, View.ALPHA, 0f, 1f); s.setDuration(600); s.setStartDelay(120);
+            ObjectAnimator b = ObjectAnimator.ofFloat(actionButton, View.ALPHA, 0f, 1f); b.setDuration(500); b.setStartDelay(260);
+            set.playTogether(t, s, b); set.setInterpolator(new DecelerateInterpolator()); set.start();
             actionButton.post(actionButton::requestFocus);
             return;
         }
-
-        // Смена шага: fade-out старого контента
         AnimatorSet fadeOut = new AnimatorSet();
-        ObjectAnimator outTitle = ObjectAnimator.ofFloat(titleView, View.ALPHA, 1f, 0f);
-        ObjectAnimator outSub = ObjectAnimator.ofFloat(subtitleView, View.ALPHA, 1f, 0f);
-        ObjectAnimator outBtn = ObjectAnimator.ofFloat(actionButton, View.ALPHA, 1f, 0f);
-        fadeOut.playTogether(outTitle, outSub, outBtn);
-        fadeOut.setDuration(180);
-        fadeOut.setInterpolator(new DecelerateInterpolator());
-
+        fadeOut.playTogether(
+            ObjectAnimator.ofFloat(titleView, View.ALPHA, 1f, 0f),
+            ObjectAnimator.ofFloat(subtitleView, View.ALPHA, 1f, 0f),
+            ObjectAnimator.ofFloat(actionButton, View.ALPHA, 1f, 0f)
+        );
+        fadeOut.setDuration(180); fadeOut.setInterpolator(new DecelerateInterpolator());
         fadeOut.addListener(new android.animation.AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(android.animation.Animator animation) {
+            @Override public void onAnimationEnd(android.animation.Animator animation) {
                 applyText.run();
-
-                // Подготовка: лёгкий сдвиг вниз + прозрачность
-                float offset = dp(24);
-                titleView.setTranslationY(offset);
-                subtitleView.setTranslationY(offset);
-                actionButton.setTranslationY(offset);
-
-                // Появление: fade-in + slide-up (Apple TV style)
-                AnimatorSet fadeIn = new AnimatorSet();
-                ObjectAnimator inTitle = ObjectAnimator.ofFloat(titleView, View.ALPHA, 0f, 1f);
-                ObjectAnimator tyTitle = ObjectAnimator.ofFloat(titleView, View.TRANSLATION_Y, offset, 0f);
-                ObjectAnimator inSub = ObjectAnimator.ofFloat(subtitleView, View.ALPHA, 0f, 1f);
-                ObjectAnimator tySub = ObjectAnimator.ofFloat(subtitleView, View.TRANSLATION_Y, offset, 0f);
-                ObjectAnimator inBtn = ObjectAnimator.ofFloat(actionButton, View.ALPHA, 0f, 1f);
-                ObjectAnimator tyBtn = ObjectAnimator.ofFloat(actionButton, View.TRANSLATION_Y, offset, 0f);
-
-                inTitle.setDuration(400);
-                tyTitle.setDuration(400);
-                inSub.setDuration(450);
-                tySub.setDuration(450);
-                inSub.setStartDelay(60);
-                tySub.setStartDelay(60);
-                inBtn.setDuration(420);
-                tyBtn.setDuration(420);
-                inBtn.setStartDelay(140);
-                tyBtn.setStartDelay(140);
-
-                fadeIn.playTogether(inTitle, tyTitle, inSub, tySub, inBtn, tyBtn);
-                fadeIn.setInterpolator(new DecelerateInterpolator(1.4f));
-                fadeIn.start();
-
+                float o = dp(24);
+                titleView.setTranslationY(o); subtitleView.setTranslationY(o); actionButton.setTranslationY(o);
+                AnimatorSet in = new AnimatorSet();
+                ObjectAnimator inT = ObjectAnimator.ofFloat(titleView, View.ALPHA, 0f, 1f); inT.setDuration(400);
+                ObjectAnimator tyT = ObjectAnimator.ofFloat(titleView, View.TRANSLATION_Y, o, 0f); tyT.setDuration(400);
+                ObjectAnimator inS = ObjectAnimator.ofFloat(subtitleView, View.ALPHA, 0f, 1f); inS.setDuration(450); inS.setStartDelay(60);
+                ObjectAnimator tyS = ObjectAnimator.ofFloat(subtitleView, View.TRANSLATION_Y, o, 0f); tyS.setDuration(450); tyS.setStartDelay(60);
+                ObjectAnimator inB = ObjectAnimator.ofFloat(actionButton, View.ALPHA, 0f, 1f); inB.setDuration(420); inB.setStartDelay(140);
+                ObjectAnimator tyB = ObjectAnimator.ofFloat(actionButton, View.TRANSLATION_Y, o, 0f); tyB.setDuration(420); tyB.setStartDelay(140);
+                in.playTogether(inT, tyT, inS, tyS, inB, tyB);
+                in.setInterpolator(new DecelerateInterpolator(1.4f));
+                in.start();
                 actionButton.post(actionButton::requestFocus);
             }
         });
@@ -227,9 +138,7 @@ public class OnboardingActivity extends Activity {
     }
 
     private void finishOnboarding() {
-        SharedPreferences prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        prefs.edit().putBoolean(KEY_DONE, true).apply();
-
+        getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_DONE, true).apply();
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
@@ -238,13 +147,9 @@ public class OnboardingActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (step > 0) {
-            showStep(step - 1, false);
-        }
-        // На шаге 0 назад не выходим
+        if (step > 0) showStep(step - 1, false);
+        else finishOnboarding();
     }
 
-    private int dp(int v) {
-        return (int) (v * getResources().getDisplayMetrics().density + 0.5f);
-    }
+    private int dp(int v) { return (int) (v * getResources().getDisplayMetrics().density + 0.5f); }
 }
