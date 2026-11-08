@@ -118,14 +118,13 @@ public class MainActivity extends Activity {
 
         // Док
         if (dockContainer != null) dockContainer.setBackground(ThemeManager.dockBackground(this));
-        // Hero gradient overlay (второй View после banner_container)
-        View heroOverlay = findViewById(R.id.hero_gradient_overlay);
-        if (heroOverlay != null) heroOverlay.setBackground(ThemeManager.heroGradient(this));
-        // Top fade
-        View topFade = findViewById(R.id.top_fade_gradient);
-        if (topFade != null) topFade.setBackground(ThemeManager.topFade(this));
         // Status pill
         if (timePillContainer != null) timePillContainer.setBackground(ThemeManager.statusPill(this));
+        // Часы — цвет текста под тему
+        View clock = findViewById(R.id.main_text_clock);
+        if (clock instanceof android.widget.TextClock) {
+            ((android.widget.TextClock) clock).setTextColor(ThemeManager.clockText(this));
+        }
 
         prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
 
@@ -174,6 +173,10 @@ public class MainActivity extends Activity {
         ThemeManager.applyBackground(findViewById(android.R.id.content), this);
         if (dockContainer != null) dockContainer.setBackground(ThemeManager.dockBackground(this));
         if (timePillContainer != null) timePillContainer.setBackground(ThemeManager.statusPill(this));
+        View clock = findViewById(R.id.main_text_clock);
+        if (clock instanceof android.widget.TextClock) {
+            ((android.widget.TextClock) clock).setTextColor(ThemeManager.clockText(this));
+        }
         setupDynamicGrid();
     }
 
@@ -558,12 +561,23 @@ public class MainActivity extends Activity {
 
     private void animateAmbientGlow(int targetColor) {
         if (ambientGlowBg == null) return;
-        ValueAnimator colorAnim = ValueAnimator.ofObject(new ArgbEvaluator(), currentGlowColor, targetColor);
+        int adjusted = targetColor;
+        if (ThemeManager.isLight(this)) {
+            // В светлой теме — ярче и насыщеннее
+            float[] hsv = new float[3];
+            Color.colorToHSV(targetColor, hsv);
+            hsv[1] = Math.min(1f, hsv[1] * 1.6f);
+            hsv[2] = Math.min(1f, hsv[2] * 1.15f);
+            adjusted = Color.HSVToColor(hsv);
+        }
+        int endColor = ThemeManager.isLight(this) ? 0xFFF5F5F7 : 0xFF050508;
+        final int target = adjusted;
+        ValueAnimator colorAnim = ValueAnimator.ofObject(new ArgbEvaluator(), currentGlowColor, adjusted);
         colorAnim.setDuration(350);
         colorAnim.addUpdateListener(animator -> {
             int c = (int) animator.getAnimatedValue();
             currentGlowColor = c;
-            GradientDrawable gd = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{c, 0xFF050508});
+            GradientDrawable gd = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{c, endColor});
             ambientGlowBg.setBackground(gd);
         });
         colorAnim.start();

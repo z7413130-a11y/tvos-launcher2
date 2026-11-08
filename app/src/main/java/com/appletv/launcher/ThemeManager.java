@@ -2,11 +2,8 @@ package com.appletv.launcher;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
 
 public class ThemeManager {
 
@@ -30,16 +27,15 @@ public class ThemeManager {
     // Базовые цвета
     public static int background(Context c) { return isLight(c) ? 0xFFF5F5F7 : 0xFF050508; }
     public static int textPrimary(Context c) { return isLight(c) ? 0xFF1A1A1C : 0xFFFFFFFF; }
-    public static int textSecondary(Context c) { return isLight(c) ? 0xFF666666 : 0xFFCCCCCC; }
-    public static int cardBg(Context c) { return isLight(c) ? 0xFFFFFFFF : 0xFF1A1A1C; }
+    public static int clockText(Context c) { return isLight(c) ? 0xCC000000 : 0xCCFFFFFF; }
 
-    // Док (стекло)
+    // Док — полупрозрачный в обеих темах
     public static GradientDrawable dockBackground(Context c) {
         GradientDrawable gd = new GradientDrawable();
         if (isLight(c)) {
-            gd.setColors(new int[]{0xCCFFFFFF, 0xE6FFFFFF, 0xCCFFFFFF});
+            gd.setColors(new int[]{0x66FFFFFF, 0x99FFFFFF, 0x66FFFFFF});
             gd.setOrientation(GradientDrawable.Orientation.TL_BR);
-            gd.setStroke(dp(c, 1), 0x4D000000);
+            gd.setStroke(dp(c, 1), 0x33000000);
             gd.setCornerRadius(dp(c, 28));
         } else {
             gd.setColors(new int[]{0x1AFFFFFF, 0x33FFFFFF, 0x0DFFFFFF});
@@ -50,23 +46,7 @@ public class ThemeManager {
         return gd;
     }
 
-    // Градиент верхней панели (hero_gradient_overlay)
-    public static GradientDrawable heroGradient(Context c) {
-        GradientDrawable gd = new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP,
-                isLight(c) ? new int[]{0x00FFFFFF, 0x88FFFFFF, 0xFFFFFFFF}
-                           : new int[]{0xFF000000, 0x88000000, 0x00000000});
-        return gd;
-    }
-
-    // Верхний fade (top_fade_gradient)
-    public static GradientDrawable topFade(Context c) {
-        GradientDrawable gd = new GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP,
-                isLight(c) ? new int[]{0x00F5F5F7, 0xB3F5F5F7, 0xFFF5F5F7}
-                           : new int[]{0x00050508, 0xB3050508, 0xFF050508});
-        return gd;
-    }
-
-    // Плашка часов (status_pill_bg)
+    // Плашка часов
     public static GradientDrawable statusPill(Context c) {
         GradientDrawable gd = new GradientDrawable();
         if (isLight(c)) {
@@ -78,34 +58,6 @@ public class ThemeManager {
         }
         gd.setCornerRadius(dp(c, 22));
         return gd;
-    }
-
-    // Левая панель настроек
-    public static GradientDrawable settingsLeftPanel(Context c) {
-        GradientDrawable gd = new GradientDrawable();
-        gd.setColor(isLight(c) ? 0xFFFFFFFF : 0xFF212124);
-        gd.setCornerRadius(dp(c, 42));
-        return gd;
-    }
-
-    // Строка настроек (обычная)
-    public static GradientDrawable rowNormal(Context c) {
-        GradientDrawable gd = new GradientDrawable();
-        gd.setColor(isLight(c) ? 0x14000000 : 0x14FFFFFF);
-        gd.setCornerRadius(dp(c, 6));
-        return gd;
-    }
-
-    // Строка настроек (фокус)
-    public static GradientDrawable rowFocused(Context c) {
-        GradientDrawable gd = new GradientDrawable();
-        gd.setColor(isLight(c) ? 0xFF000000 : 0xFFFFFFFF);
-        gd.setCornerRadius(dp(c, 8));
-        return gd;
-    }
-
-    public static int rowFocusedText(Context c) {
-        return isLight(c) ? 0xFFFFFFFF : 0xFF000000;
     }
 
     private static int dp(Context c, int v) {
