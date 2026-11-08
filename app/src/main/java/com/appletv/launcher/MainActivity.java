@@ -314,7 +314,7 @@ public class MainActivity extends Activity {
         int newIdx = idx + dir;
         if (newIdx < 0 || newIdx >= dockApps.size()) return;
         Collections.swap(dockApps, idx, newIdx);
-        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
+        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyItemMoved(idx, newIdx);
         focusDockItem(newIdx);
         resetEditTimeout();
     }
@@ -325,7 +325,7 @@ public class MainActivity extends Activity {
         int newIdx = idx + dir;
         if (newIdx < 0 || newIdx >= gridApps.size()) return;
         Collections.swap(gridApps, idx, newIdx);
-        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
+        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyItemMoved(idx, newIdx);
         focusGridItem(newIdx);
         resetEditTimeout();
     }
@@ -349,28 +349,6 @@ public class MainActivity extends Activity {
             if (vh != null) vh.itemView.requestFocus();
             else if (gridRecycler.getChildCount() > 0) gridRecycler.getChildAt(0).requestFocus();
         });
-    }
-
-    private void addToDock(AppItem item) {
-        if (dockApps.contains(item)) return;
-        dockApps.add(item);
-        gridApps.remove(item);
-        saveLayout();
-        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
-        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
-        focusDockItem(dockApps.size() - 1);
-        resetEditTimeout();
-    }
-
-    private void removeFromDock(AppItem item) {
-        if (!dockApps.contains(item)) return;
-        dockApps.remove(item);
-        gridApps.add(0, item);
-        saveLayout();
-        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
-        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
-        focusGridItem(0);
-        resetEditTimeout();
     }
 
     private void saveFavorites() {
@@ -553,14 +531,12 @@ public class MainActivity extends Activity {
         ImageView iconImage;
         TextView localLabel;
         View glareOverlay;
-        TextView dotsMenu;
-        TextView actionButton;
 
         ObjectAnimator shimmerAnim;
         AnimatorSet scaleAnim;
         ObjectAnimator jiggleAnim;
 
-        public AppViewHolder(LinearLayout root, FrameLayout card, ImageView bgImage, ImageView iconImage, TextView localLabel, View glareOverlay, TextView dotsMenu, TextView actionButton) {
+        public AppViewHolder(LinearLayout root, FrameLayout card, ImageView bgImage, ImageView iconImage, TextView localLabel, View glareOverlay) {
             super(root);
             this.root = root;
             this.card = card;
@@ -568,8 +544,6 @@ public class MainActivity extends Activity {
             this.iconImage = iconImage;
             this.localLabel = localLabel;
             this.glareOverlay = glareOverlay;
-            this.dotsMenu = dotsMenu;
-            this.actionButton = actionButton;
         }
 
         public void startJiggle() {
@@ -599,8 +573,6 @@ public class MainActivity extends Activity {
             card.setTranslationZ(dpToPx(4));
             glareOverlay.setAlpha(0f);
             localLabel.setAlpha(0f);
-            dotsMenu.setVisibility(View.GONE);
-            actionButton.setVisibility(View.GONE);
         }
     }
 
@@ -667,36 +639,6 @@ public class MainActivity extends Activity {
             glareOverlay.setAlpha(0f);
             card.addView(glareOverlay);
 
-            TextView dotsMenu = new TextView(ctx);
-            dotsMenu.setText("⋯");
-            dotsMenu.setTextColor(Color.WHITE);
-            dotsMenu.setTextSize(20f);
-            dotsMenu.setGravity(Gravity.CENTER);
-            dotsMenu.setBackgroundColor(0x99000000);
-            dotsMenu.setFocusable(true);
-            dotsMenu.setClickable(true);
-            dotsMenu.setVisibility(View.GONE);
-            FrameLayout.LayoutParams dotsLp = new FrameLayout.LayoutParams(dpToPx(28), dpToPx(28), Gravity.TOP | Gravity.END);
-            dotsLp.setMargins(0, dpToPx(4), dpToPx(4), 0);
-            dotsMenu.setLayoutParams(dotsLp);
-            card.addView(dotsMenu);
-
-            TextView actionButton = new TextView(ctx);
-            actionButton.setTextColor(Color.WHITE);
-            actionButton.setTextSize(11f);
-            actionButton.setGravity(Gravity.CENTER);
-            actionButton.setBackgroundColor(0xCC000000);
-            actionButton.setPadding(dpToPx(8), dpToPx(4), dpToPx(8), dpToPx(4));
-            actionButton.setFocusable(true);
-            actionButton.setClickable(true);
-            actionButton.setVisibility(View.GONE);
-            FrameLayout.LayoutParams actionLp = new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
-                    Gravity.TOP | Gravity.END);
-            actionLp.setMargins(0, dpToPx(36), dpToPx(4), 0);
-            actionButton.setLayoutParams(actionLp);
-            card.addView(actionButton);
-
             root.addView(card);
 
             TextView localLabel = new TextView(ctx);
@@ -713,7 +655,7 @@ public class MainActivity extends Activity {
             if (isDock) localLabel.setVisibility(View.GONE);
             root.addView(localLabel);
 
-            return new AppViewHolder(root, card, bgImage, iconImage, localLabel, glareOverlay, dotsMenu, actionButton);
+            return new AppViewHolder(root, card, bgImage, iconImage, localLabel, glareOverlay);
         }
 
         @Override
@@ -731,8 +673,7 @@ public class MainActivity extends Activity {
 
             if (isEditMode) {
                 vh.startJiggle();
-                vh.dotsMenu.setVisibility(View.VISIBLE);
-                if (grabbedItem == item) {
+                if (grabbedItem != null && grabbedItem.equals(item)) {
                     vh.card.setScaleX(1.15f);
                     vh.card.setScaleY(1.15f);
                 }
@@ -760,47 +701,17 @@ public class MainActivity extends Activity {
                 vh.iconImage.setVisibility(View.VISIBLE);
             }
 
-            vh.dotsMenu.setOnFocusChangeListener((v, hasFocus) -> {
-                if (hasFocus && isEditMode) {
-                    vh.actionButton.setText(isDock ? "Убрать из избранного" : "Добавить в избранное");
-                    vh.actionButton.setVisibility(View.VISIBLE);
-                } else {
-                    vh.actionButton.setVisibility(View.GONE);
-                }
-            });
-
-            vh.dotsMenu.setOnClickListener(v -> {
-                if (isEditMode) {
-                    vh.actionButton.setText(isDock ? "Убрать из избранного" : "Добавить в избранное");
-                    vh.actionButton.setVisibility(View.VISIBLE);
-                    vh.actionButton.requestFocus();
-                }
-            });
-
-            vh.actionButton.setOnClickListener(v -> {
-                if (!isEditMode) return;
-                if (isDock) removeFromDock(item);
-                else addToDock(item);
-            });
-
-            vh.actionButton.setOnFocusChangeListener((v, hasFocus) -> {
-                if (!hasFocus) vh.actionButton.setVisibility(View.GONE);
-            });
-
             vh.root.setOnClickListener(v -> {
                 if (isEditMode) {
-                    if (grabbedItem == item) {
+                    // В режиме редактирования: OK = захват / приземление
+                    if (grabbedItem != null && grabbedItem.equals(item)) {
                         grabbedItem = null;
                         if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
                         if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
-                        return;
-                    }
-                    if (grabbedItem == null) {
+                    } else if (grabbedItem == null) {
                         grabbedItem = item;
                         vh.card.setScaleX(1.15f);
                         vh.card.setScaleY(1.15f);
-                        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
-                        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
                     }
                     return;
                 }
@@ -824,6 +735,7 @@ public class MainActivity extends Activity {
                 }
             });
 
+            // Долгое OK -> вход в режим редактирования (вне режима)
             vh.root.setOnLongClickListener(v -> {
                 if (!isEditMode) {
                     enterEditMode();
@@ -832,13 +744,33 @@ public class MainActivity extends Activity {
                 return false;
             });
 
+            // Долгий Back -> добавить/убрать из избранного (работает всегда)
             vh.root.setOnKeyListener((v, keyCode, event) -> {
-                if (!isEditMode || grabbedItem != item) return false;
-                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
-                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) { if (isDock) moveInDock(item, -1); else moveInGrid(item, -1); return true; }
-                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) { if (isDock) moveInDock(item, 1); else moveInGrid(item, 1); return true; }
-                if (keyCode == KeyEvent.KEYCODE_DPAD_UP && !isDock) { moveInGrid(item, -6); return true; }
-                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && !isDock) { moveInGrid(item, 6); return true; }
+                if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() >= 1) {
+                    if (isDock) {
+                        if (gridApps.contains(item)) return true;
+                        dockApps.remove(item);
+                        gridApps.add(0, item);
+                        saveFavorites();
+                        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
+                        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
+                    } else {
+                        if (dockApps.contains(item)) return true;
+                        dockApps.add(item);
+                        gridApps.remove(item);
+                        saveFavorites();
+                        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
+                        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
+                    }
+                    return true;
+                }
+                // Перемещение стрелками, если иконка захвачена
+                if (isEditMode && grabbedItem != null && grabbedItem.equals(item) && event.getAction() == KeyEvent.ACTION_DOWN) {
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) { if (isDock) moveInDock(item, -1); else moveInGrid(item, -1); return true; }
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) { if (isDock) moveInDock(item, 1); else moveInGrid(item, 1); return true; }
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_UP && !isDock) { moveInGrid(item, -6); return true; }
+                    if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && !isDock) { moveInGrid(item, 6); return true; }
+                }
                 return false;
             });
 
@@ -848,8 +780,9 @@ public class MainActivity extends Activity {
                     if (isDock) lastDockPosition = vh.getAdapterPosition();
                     if (vh.scaleAnim != null) vh.scaleAnim.cancel();
                     vh.scaleAnim = new AnimatorSet();
-                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.12f);
-                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.12f);
+                    float targetScale = (isEditMode && grabbedItem != null && grabbedItem.equals(item)) ? 1.15f : 1.12f;
+                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", targetScale);
+                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", targetScale);
                     ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx(30));
                     vh.scaleAnim.playTogether(sx, sy, sz);
                     vh.scaleAnim.setDuration(350);
@@ -882,8 +815,9 @@ public class MainActivity extends Activity {
                 } else {
                     if (vh.scaleAnim != null) vh.scaleAnim.cancel();
                     vh.scaleAnim = new AnimatorSet();
-                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", grabbedItem == item ? 1.15f : 1.0f);
-                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", grabbedItem == item ? 1.15f : 1.0f);
+                    float targetScale = (isEditMode && grabbedItem != null && grabbedItem.equals(item)) ? 1.15f : 1.0f;
+                    ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", targetScale);
+                    ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", targetScale);
                     ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx(4));
                     vh.scaleAnim.playTogether(sx, sy, sz);
                     vh.scaleAnim.setDuration(250);
