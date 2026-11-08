@@ -36,6 +36,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -330,9 +331,37 @@ public class MainActivity extends Activity {
         resetEditTimeout();
     }
 
+    /** Перенос захваченной иконки из сетки в док (в конец). */
+    private void moveGridToDock(AppItem item) {
+        if (dockApps.contains(item)) return;
+        dockApps.add(item);
+        gridApps.remove(item);
+        grabbedItem = null;
+        saveFavorites();
+        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
+        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
+        Toast.makeText(this, "Добавлено в избранное", Toast.LENGTH_SHORT).show();
+        focusDockItem(dockApps.size() - 1);
+        resetEditTimeout();
+    }
+
+    /** Перенос захваченной иконки из дока в сетку (в начало). */
+    private void moveDockToGrid(AppItem item) {
+        if (!dockApps.contains(item)) return;
+        dockApps.remove(item);
+        gridApps.add(0, item);
+        grabbedItem = null;
+        saveFavorites();
+        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
+        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
+        Toast.makeText(this, "Убрано из избранного", Toast.LENGTH_SHORT).show();
+        focusGridItem(0);
+        resetEditTimeout();
+    }
+
     private void focusDockItem(int pos) {
         if (dockRecycler == null) return;
-        final int target = pos;
+        final int target = Math.max(0, Math.min(pos, dockApps.size() - 1));
         dockRecycler.post(() -> {
             RecyclerView.ViewHolder vh = dockRecycler.findViewHolderForAdapterPosition(target);
             if (vh != null) vh.itemView.requestFocus();
@@ -342,7 +371,7 @@ public class MainActivity extends Activity {
 
     private void focusGridItem(int pos) {
         if (gridRecycler == null) return;
-        final int target = pos;
+        final int target = Math.max(0, Math.min(pos, gridApps.size() - 1));
         gridRecycler.post(() -> {
             gridRecycler.scrollToPosition(target);
             RecyclerView.ViewHolder vh = gridRecycler.findViewHolderForAdapterPosition(target);
@@ -703,7 +732,6 @@ public class MainActivity extends Activity {
 
             vh.root.setOnClickListener(v -> {
                 if (isEditMode) {
-                    // В режиме редактирования: OK = захват / приземление
                     if (grabbedItem != null && grabbedItem.equals(item)) {
                         grabbedItem = null;
                         if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
@@ -735,7 +763,6 @@ public class MainActivity extends Activity {
                 }
             });
 
-            // Долгое OK -> вход в режим редактирования (вне режима)
             vh.root.setOnLongClickListener(v -> {
                 if (!isEditMode) {
                     enterEditMode();
@@ -744,32 +771,44 @@ public class MainActivity extends Activity {
                 return false;
             });
 
-            // Долгий Back -> добавить/убрать из избранного (работает всегда)
             vh.root.setOnKeyListener((v, keyCode, event) -> {
-                if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() >= 1) {
-                    if (isDock) {
-                        if (gridApps.contains(item)) return true;
-                        dockApps.remove(item);
-                        gridApps.add(0, item);
-                        saveFavorites();
-                        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
-                        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
-                    } else {
-                        if (dockApps.contains(item)) return true;
-                        dockApps.add(item);
-                        gridApps.remove(item);
-                        saveFavorites();
-                        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
-                        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
-                    }
+                if (!isEditMode || grabbedItem == null || !grabbedItem.equals(item)) return false;
+                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+
+                if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
+                    if (isDock) moveInDock(item, -1);
+                    else moveInGrid(item, -1);
                     return true;
                 }
-                // Перемещение стрелками, если иконка захвачена
-                if (isEditMode && grabbedItem != null && grabbedItem.equals(item) && event.getAction() == KeyEvent.ACTION_DOWN) {
-                    if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) { if (isDock) moveInDock(item, -1); else moveInGrid(item, -1); return true; }
-                    if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) { if (isDock) moveInDock(item, 1); else moveInGrid(item, 1); return true; }
-                    if (keyCode == KeyEvent.KEYCODE_DPAD_UP && !isDock) { moveInGrid(item, -6); return true; }
-                    if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN && !isDock) { moveInGrid(item, 6); return true; }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) {
+                    if (isDock) moveInDock(item, 1);
+                    else moveInGrid(item, 1);
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                    if (isDock) {
+                        // верх дока — ничего
+                        return true;
+                    } else {
+                        int idx = gridApps.indexOf(item);
+                        if (idx < 6) {
+                            // первый ряд -> в док
+                            moveGridToDock(item);
+                        } else {
+                            moveInGrid(item, -6);
+                        }
+                        return true;
+                    }
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    if (isDock) {
+                        // низ дока -> в сетку
+                        moveDockToGrid(item);
+                        return true;
+                    } else {
+                        moveInGrid(item, 6);
+                        return true;
+                    }
                 }
                 return false;
             });
