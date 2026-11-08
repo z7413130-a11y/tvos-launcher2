@@ -114,6 +114,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         SoundManager.init(this);
+        ThemeManager.applyBackground(findViewById(android.R.id.content), this);
 
         prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
 
@@ -866,6 +867,7 @@ public class MainActivity extends Activity {
                     if (isDock) {
                         if (heroTitle != null && !isEditMode) {
                             heroTitle.animate().alpha(1f).setDuration(200).start();
+                            heroTitle.setTextColor(ThemeManager.textPrimary(MainActivity.this));
                             heroTitle.setText(item.label);
                         }
                         if (timePillContainer != null) timePillContainer.animate().alpha(1f).setDuration(200).start();

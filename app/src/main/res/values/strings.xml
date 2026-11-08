@@ -54,4 +54,7 @@
     <string name="toast_cant_open">Не удалось открыть</string>
     <string name="toast_choose_launcher">Выберите лаунчер в открывшемся окне</string>
     <string name="toast_open_default_apps">Откройте «Главный экран» и выберите лаунчер</string>
+    <string name="settings_theme">Тема</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="theme_light">Светлая</string>
 </resources>

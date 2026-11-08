@@ -40,6 +40,7 @@ public class SettingsActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
         SoundManager.init(this);
+        ThemeManager.applyBackground(findViewById(android.R.id.content), this);
         prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
         dynamicLeftIcon = findViewById(R.id.dynamic_left_icon);
         listContainer = findViewById(R.id.settings_list_container);
@@ -155,6 +156,20 @@ public class SettingsActivity extends Activity {
             loadAppearanceMenu();
             showToast(getString(R.string.toast_bg_changed, bgLabels[next]));
         }, true);
+
+        // Тема
+        int themeMode = ThemeManager.getThemeMode(this);
+        String[] themeLabels = {getString(R.string.theme_dark), getString(R.string.theme_light)};
+        addItem(getString(R.string.settings_theme), themeLabels[themeMode], R.drawable.ic_panel_appearance, () -> {
+            int next = (themeMode + 1) % themeLabels.length;
+            ThemeManager.setThemeMode(this, next);
+            // Перезапускаем лаунчер, чтобы тема применилась везде
+            Intent i = new Intent(this, MainActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(i);
+            finish();
+        }, true);
+
         requestFirstFocus();
     }
 
@@ -258,11 +273,19 @@ public class SettingsActivity extends Activity {
         if (onClick == null) { row.setFocusable(false); row.setClickable(false); }
         else { row.setFocusable(true); row.setClickable(true); row.setOnClickListener(v -> onClick.run()); }
         row.setPadding(dpToPx(16), 0, dpToPx(16), 0);
-        row.setBackgroundResource(R.drawable.bg_settings_row_normal);
+        boolean light = ThemeManager.isLight(this);
+        if (light) {
+            GradientDrawable gd = new GradientDrawable();
+            gd.setColor(0x14000000);
+            gd.setCornerRadius(dpToPx(6));
+            row.setBackground(gd);
+        } else {
+            row.setBackgroundResource(R.drawable.bg_settings_row_normal);
+        }
 
         TextView label = new TextView(this);
         label.setText(text);
-        label.setTextColor(Color.WHITE);
+        label.setTextColor(ThemeManager.textPrimary(this));
         label.setTextSize(16f);
         label.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
         LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1);
@@ -288,9 +311,13 @@ public class SettingsActivity extends Activity {
             if (hasFocus) {
                 SoundManager.playFocus();
                 scrollRowIntoView(row);
-                row.setBackgroundResource(R.drawable.bg_settings_row_focused);
-                label.setTextColor(Color.BLACK);
-                arrow.setTextColor(Color.BLACK);
+                boolean light2 = ThemeManager.isLight(this);
+                GradientDrawable gd = new GradientDrawable();
+                gd.setColor(light2 ? 0xFF000000 : 0xFFFFFFFF);
+                gd.setCornerRadius(dpToPx(8));
+                row.setBackground(gd);
+                label.setTextColor(light2 ? 0xFFFFFFFF : 0xFF000000);
+                arrow.setTextColor(light2 ? 0xFFFFFFFF : 0xFF000000);
                 row.animate().scaleX(1.02f).scaleY(1.02f).setDuration(150).start();
                 if (currentState == MenuState.MAIN) updateLeftIcon(iconResId);
             } else {
