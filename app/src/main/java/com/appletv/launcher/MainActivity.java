@@ -108,6 +108,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         SoundManager.init(this);
+        if (mainScrollView != null) mainScrollView.setOverScrollMode(View.OVER_SCROLL_NEVER);
 
         prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
 
@@ -170,10 +171,12 @@ public class MainActivity extends Activity {
         int cardWidthPx = itemCellWidthPx - (itemMarginPx * 2);
         int cardHeightPx = (int) (cardWidthPx * (9f / 16f));
 
+        gridRecycler.setOverScrollMode(View.OVER_SCROLL_NEVER);
         gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
         gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, cardWidthPx, cardHeightPx, itemMarginPx));
 
         if (dockRecycler != null) {
+            dockRecycler.setOverScrollMode(View.OVER_SCROLL_NEVER);
             dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
             dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true, cardWidthPx, cardHeightPx, itemMarginPx));
 
@@ -221,13 +224,33 @@ public class MainActivity extends Activity {
         }
     }
 
-    /** Прокрутить ScrollView так, чтобы сетка была видна целиком под доком. */
+    /** Прокрутить ScrollView так, чтобы сетка была видна целиком под доком (с отскоком). */
     private void scrollToGrid() {
         if (mainScrollView == null || gridRecycler == null) return;
         mainScrollView.post(() -> {
             int target = gridRecycler.getTop() - dpToPx(16);
             if (target < 0) target = 0;
-            mainScrollView.smoothScrollTo(0, target);
+            smoothScrollWithBounce(mainScrollView, target, 450);
+        });
+    }
+
+    /** Плавный скролл ScrollView с лёгким отскоком (Overshoot). */
+    private void smoothScrollWithBounce(final ScrollView scrollView, final int targetY, final int duration) {
+        final int startY = scrollView.getScrollY();
+        final int delta = targetY - startY;
+        final android.view.animation.OvershootInterpolator interpolator =
+                new android.view.animation.OvershootInterpolator(1.05f);
+        final long startTime = android.os.SystemClock.uptimeMillis();
+        final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+        handler.post(new Runnable() {
+            @Override
+            public void run() {
+                long elapsed = android.os.SystemClock.uptimeMillis() - startTime;
+                float t = Math.min(1f, elapsed / (float) duration);
+                float eased = interpolator.getInterpolation(t);
+                scrollView.scrollTo(0, startY + Math.round(delta * eased));
+                if (t < 1f) handler.postDelayed(this, 16);
+            }
         });
     }
 
@@ -246,7 +269,7 @@ public class MainActivity extends Activity {
             gridDarkOverlay.animate().alpha(0f).setDuration(300).start();
         }
         if (mainScrollView != null) {
-            mainScrollView.smoothScrollTo(0, 0);
+            smoothScrollWithBounce(mainScrollView, 0, 400);
         }
     }
 

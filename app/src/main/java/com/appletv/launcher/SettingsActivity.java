@@ -226,7 +226,24 @@ public class SettingsActivity extends Activity {
     }
 
     private void requestFirstFocus() {
-        listContainer.post(() -> { if (listContainer.getChildCount() > 0) listContainer.getChildAt(0).requestFocus(); });
+        listContainer.post(() -> {
+            View parent = (View) listContainer.getParent();
+            if (parent instanceof android.widget.ScrollView) {
+                ((android.widget.ScrollView) parent).setOverScrollMode(View.OVER_SCROLL_NEVER);
+                ((android.widget.ScrollView) parent).smoothScrollTo(0, 0);
+            }
+            if (listContainer.getChildCount() > 0) listContainer.getChildAt(0).requestFocus();
+        });
+    }
+
+    /** Плавно прокрутить ScrollView так, чтобы строка была видна. */
+    private void scrollRowIntoView(View row) {
+        View parent = (View) listContainer.getParent();
+        if (!(parent instanceof android.widget.ScrollView)) return;
+        android.widget.ScrollView sv = (android.widget.ScrollView) parent;
+        int target = row.getTop() - dpToPx(24);
+        if (target < 0) target = 0;
+        sv.smoothScrollTo(0, target);
     }
 
     private void showToast(String msg) { Toast.makeText(this, msg, Toast.LENGTH_SHORT).show(); }
@@ -270,6 +287,7 @@ public class SettingsActivity extends Activity {
         row.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
                 SoundManager.playFocus();
+                scrollRowIntoView(row);
                 row.setBackgroundResource(R.drawable.bg_settings_row_focused);
                 label.setTextColor(Color.BLACK);
                 arrow.setTextColor(Color.BLACK);
