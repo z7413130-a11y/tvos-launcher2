@@ -56,14 +56,15 @@ public class MainActivity extends Activity {
     private View gridDarkOverlay;
     private RecyclerView dockRecycler;
     private RecyclerView gridRecycler;
-    
+
     private final List<AppItem> dockApps = new ArrayList<>();
     private final List<AppItem> gridApps = new ArrayList<>();
     private SharedPreferences prefs;
     private int currentGlowColor = 0xFF22222E;
     private float currentUiScale = 1.0f;
-    
-    private boolean isGridViewOpen = false; 
+
+    private boolean isGridViewOpen = false;
+    private int lastDockPosition = 0;
     public static final String VIRTUAL_SETTINGS_PKG = "com.appletv.launcher.INTERNAL_SETTINGS";
 
     private final Map<String, Integer> fallbackBanners = new HashMap<>();
@@ -105,14 +106,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // Первый запуск? Показываем онбординг
-        prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
-        if (!prefs.getBoolean("onboarding_done", false)) {
-            startActivity(new Intent(this, OnboardingActivity.class));
-        }
-
         setContentView(R.layout.activity_main);
+
+        prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
 
         fallbackBanners.put("youtube", R.drawable.banner_youtube);
         fallbackBanners.put("kinopoisk", R.drawable.banner_kinopoisk);
@@ -129,7 +125,6 @@ public class MainActivity extends Activity {
         dockRecycler = findViewById(R.id.dock_recycler);
         gridRecycler = findViewById(R.id.grid_recycler);
 
-        
         if (dockContainer != null) {
             dockContainer.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
@@ -145,7 +140,6 @@ public class MainActivity extends Activity {
         }
 
         loadInstalledApps();
-        setupGlobalFocusListener();
     }
 
     @Override
@@ -158,108 +152,89 @@ public class MainActivity extends Activity {
         setupDynamicGrid();
     }
 
-    private void setupGlobalFocusListener() {
-        final View decorView = getWindow().getDecorView();
-        decorView.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
-            boolean fromDock = isViewInDock(oldFocus);
-            boolean toGrid = isViewInGrid(newFocus);
-            boolean fromGrid = isViewInGrid(oldFocus);
-            boolean toDock = isViewInDock(newFocus);
+    private void setupDynamicGrid() {
+        if (gridRecycler == null) return;
 
-            if (fromDock && toGrid && !isGridViewOpen) {
-                openGridView();
-            } else if (fromGrid && toDock && isGridViewOpen) {
-                closeGridView();
-            }
-        });
-    }
+        currentUiScale = 1.0f;
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        int screenWidth = metrics.widthPixels;
 
-    private boolean isViewInDock(View v) {
-        if (v == null || dockRecycler == null) return false;
-        View parent = v;
-        while (parent != null) {
-            if (parent == dockRecycler) return true;
-            if (!(parent.getParent() instanceof View)) break;
-            parent = (View) parent.getParent();
+        int screenMarginsPx = dpToPx(104);
+        int availableWidthPx = screenWidth - screenMarginsPx;
+
+        int columns = 6;
+        int itemCellWidthPx = availableWidthPx / columns;
+
+        int itemMarginPx = dpToPx(8);
+        int cardWidthPx = itemCellWidthPx - (itemMarginPx * 2);
+        int cardHeightPx = (int) (cardWidthPx * (9f / 16f));
+
+        gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
+        gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, cardWidthPx, cardHeightPx, itemMarginPx));
+
+        if (dockRecycler != null) {
+            dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+            dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true, cardWidthPx, cardHeightPx, itemMarginPx));
+
+            // DOWN в доке -> открыть сетку, фокус на первый элемент
+            dockRecycler.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    openGridView();
+                    if (gridRecycler != null) {
+                        gridRecycler.post(() -> {
+                            gridRecycler.scrollToPosition(0);
+                            if (gridRecycler.getChildCount() > 0) gridRecycler.getChildAt(0).requestFocus();
+                        });
+                    }
+                    return true;
+                }
+                return false;
+            });
+
+            // UP в сетке на первом ряду -> вернуться в док
+            gridRecycler.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                    View focused = gridRecycler.getFocusedChild();
+                    if (focused != null) {
+                        int pos = gridRecycler.getChildAdapterPosition(focused);
+                        if (pos >= 0 && pos < columns) { // первый ряд
+                            closeGridView();
+                            if (dockRecycler != null) {
+                                final int target = Math.min(lastDockPosition, Math.max(0, dockApps.size() - 1));
+                                dockRecycler.post(() -> {
+                                    dockRecycler.scrollToPosition(target);
+                                    RecyclerView.ViewHolder vh = dockRecycler.findViewHolderForAdapterPosition(target);
+                                    if (vh != null) vh.itemView.requestFocus();
+                                    else if (dockRecycler.getChildCount() > 0) dockRecycler.getChildAt(0).requestFocus();
+                                });
+                            }
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            });
         }
-        return false;
-    }
-
-    private boolean isViewInGrid(View v) {
-        if (v == null || gridRecycler == null) return false;
-        View parent = v;
-        while (parent != null) {
-            if (parent == gridRecycler) return true;
-            if (!(parent.getParent() instanceof View)) break;
-            parent = (View) parent.getParent();
-        }
-        return false;
     }
 
     private void openGridView() {
+        if (isGridViewOpen) return;
         isGridViewOpen = true;
 
-        if (topStatusContainer != null) {
-            topStatusContainer.animate().translationY(-dpToPx(40)).setDuration(300).setInterpolator(new DecelerateInterpolator()).start();
-        }
-        
         if (gridDarkOverlay != null) {
             gridDarkOverlay.animate().alpha(1f).setDuration(300).start();
-        }
-
-        if (mainScrollView != null && dockContainer != null) {
-            mainScrollView.smoothScrollTo(0, dockContainer.getTop() - dpToPx(24));
         }
     }
 
     private void closeGridView() {
+        if (!isGridViewOpen) return;
         isGridViewOpen = false;
 
-        if (topStatusContainer != null) {
-            topStatusContainer.animate().translationY(0).setDuration(300).setInterpolator(new DecelerateInterpolator()).start();
-        }
-        
         if (gridDarkOverlay != null) {
             gridDarkOverlay.animate().alpha(0f).setDuration(300).start();
         }
-
         if (mainScrollView != null) {
             mainScrollView.smoothScrollTo(0, 0);
-        }
-    }
-
-    private float getUiScale() {
-        return prefs.getFloat("ui_scale", 1.0f);
-    }
-
-    private void recomputeScale() {
-        currentUiScale = getUiScale();
-    }
-
-    private void setupDynamicGrid() {
-        recomputeScale();
-        if (gridRecycler == null) return;
-        
-        currentUiScale = getUiScale();
-        DisplayMetrics metrics = getResources().getDisplayMetrics();
-        int screenWidth = metrics.widthPixels;
-        
-        int screenMarginsPx = dpToPx((int)(104 * currentUiScale)); 
-        int availableWidthPx = screenWidth - screenMarginsPx;
-        
-        int columns = 6;
-        int itemCellWidthPx = availableWidthPx / columns;
-        
-        int itemMarginPx = dpToPx((int)(8 * currentUiScale));
-        int cardWidthPx = itemCellWidthPx - (itemMarginPx * 2);
-        int cardHeightPx = (int) (cardWidthPx * (9f / 16f)); 
-
-        gridRecycler.setLayoutManager(new GridLayoutManager(this, columns));
-        gridRecycler.setAdapter(new TvosAppAdapter(gridApps, false, cardWidthPx, cardHeightPx, itemMarginPx));
-        
-        if (dockRecycler != null) {
-            dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-            dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true, cardWidthPx, cardHeightPx, itemMarginPx));
         }
     }
 
@@ -305,7 +280,6 @@ public class MainActivity extends Activity {
                     int avR = (int)(r / count);
                     int avG = (int)(g / count);
                     int avB = (int)(b / count);
-                    
                     float[] hsv = new float[3];
                     Color.RGBToHSV(avR, avG, avB, hsv);
                     hsv[1] = Math.min(1.0f, hsv[1] * 1.35f);
@@ -336,7 +310,7 @@ public class MainActivity extends Activity {
         }
 
         List<AppItem> allApps = new ArrayList<>();
-        
+
         Drawable settingsIcon = getResources().getDrawable(R.drawable.ic_tvos_settings, null);
         AppItem virtualSettings = new AppItem(VIRTUAL_SETTINGS_PKG, "Настройки", settingsIcon, null, 0xFF8A8C92);
         allApps.add(virtualSettings);
@@ -373,10 +347,9 @@ public class MainActivity extends Activity {
         }
 
         Collections.sort(allApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
-        
+
         String favs = prefs.getString("favorites", "");
-        
-        // ФОРСИРУЕМ добавление Настроек с помощью нового ключа settings_injected_v2
+
         boolean settingsInjected = prefs.getBoolean("settings_injected_v2", false);
         if (!settingsInjected) {
             if (!favs.contains(VIRTUAL_SETTINGS_PKG)) {
@@ -440,7 +413,7 @@ public class MainActivity extends Activity {
         ImageView iconImage;
         TextView localLabel;
         View glareOverlay;
-        
+
         ObjectAnimator shimmerAnim;
         AnimatorSet scaleAnim;
 
@@ -469,7 +442,7 @@ public class MainActivity extends Activity {
     private class TvosAppAdapter extends RecyclerView.Adapter<AppViewHolder> {
         private final List<AppItem> items;
         private final boolean isDock;
-        
+
         private final int cardWidth;
         private final int cardHeight;
         private final int itemMargin;
@@ -486,33 +459,32 @@ public class MainActivity extends Activity {
         @Override
         public AppViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             Context ctx = parent.getContext();
-            
+
             LinearLayout root = new LinearLayout(ctx);
             root.setOrientation(LinearLayout.VERTICAL);
             root.setGravity(Gravity.CENTER);
             root.setFocusable(true);
             root.setClickable(true);
-            root.setClipChildren(false); 
+            root.setClipChildren(false);
             root.setClipToPadding(false);
 
             RecyclerView.LayoutParams rootLp = new RecyclerView.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, 
+                ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             );
             rootLp.setMargins(itemMargin, itemMargin, itemMargin, itemMargin);
             root.setLayoutParams(rootLp);
-            
+
             FrameLayout card = new FrameLayout(ctx);
             card.setFocusable(false);
             card.setClickable(false);
-            card.setElevation(dpToPx((int)(4 * currentUiScale)));
-            
+            card.setElevation(dpToPx(4));
             card.setLayoutParams(new LinearLayout.LayoutParams(cardWidth, cardHeight));
-            
+
             card.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx((int)(12 * currentUiScale)));
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dpToPx(12));
                 }
             });
             card.setClipToOutline(true);
@@ -522,7 +494,6 @@ public class MainActivity extends Activity {
             card.addView(bgImage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
             ImageView iconImage = new ImageView(ctx);
-            
             card.addView(iconImage, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER));
 
             View glareOverlay = new View(ctx);
@@ -538,24 +509,24 @@ public class MainActivity extends Activity {
             root.addView(card);
 
             TextView localLabel = new TextView(ctx);
-            localLabel.setTextSize(13f * currentUiScale);
+            localLabel.setTextSize(13f);
             localLabel.setTextColor(Color.WHITE);
             localLabel.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             localLabel.setSingleLine(true);
             localLabel.setGravity(Gravity.CENTER);
-            localLabel.setAlpha(0f); 
-            
+            localLabel.setAlpha(0f);
+
             LinearLayout.LayoutParams labelLp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, 
+                ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
             );
-            labelLp.setMargins(0, dpToPx((int)(8 * currentUiScale)), 0, 0);
+            labelLp.setMargins(0, dpToPx(8), 0, 0);
             localLabel.setLayoutParams(labelLp);
-            
+
             if (isDock) {
                 localLabel.setVisibility(View.GONE);
             }
-            
+
             root.addView(localLabel);
 
             return new AppViewHolder(root, card, bgImage, iconImage, localLabel, glareOverlay);
@@ -589,8 +560,8 @@ public class MainActivity extends Activity {
                     int darkColor = Color.rgb((int)(Color.red(baseColor) * 0.35f), (int)(Color.green(baseColor) * 0.35f), (int)(Color.blue(baseColor) * 0.35f));
                     GradientDrawable gradient = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{baseColor, darkColor});
                     vh.bgImage.setImageDrawable(gradient);
-                    
-                    int iconSize = dpToPx((int)(56 * currentUiScale));
+
+                    int iconSize = dpToPx(56);
                     vh.iconImage.setLayoutParams(new FrameLayout.LayoutParams(iconSize, iconSize, Gravity.CENTER));
                     vh.iconImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 }
@@ -598,19 +569,11 @@ public class MainActivity extends Activity {
                 vh.iconImage.setVisibility(View.VISIBLE);
             }
 
-            vh.root.setOnKeyListener((v, keyCode, event) -> {
-                if (event.getAction() == KeyEvent.ACTION_DOWN) {
-                    if (isDock && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-                        return true;
-                    }
-                }
-                return false;
-            });
-
             vh.root.setOnLongClickListener(v -> {
                 if (!isDock) {
                     if (dockApps.contains(item)) return true;
 
+                    int removedPos = vh.getAdapterPosition();
                     AnimatorSet outAnim = new AnimatorSet();
                     ObjectAnimator pressX = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.15f, 0.9f, 0f);
                     ObjectAnimator pressY = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.15f, 0.9f, 0f);
@@ -618,21 +581,25 @@ public class MainActivity extends Activity {
                     outAnim.playTogether(pressX, pressY, fade);
                     outAnim.setDuration(250);
                     outAnim.setInterpolator(new DecelerateInterpolator());
-                    
+
                     outAnim.addListener(new AnimatorListenerAdapter() {
                         @Override
                         public void onAnimationEnd(Animator animation) {
-                            if (!dockApps.contains(item)) {
-                                dockApps.add(item);
-                            }
+                            if (!dockApps.contains(item)) dockApps.add(item);
                             gridApps.remove(item);
                             saveFavorites();
-                            
-                            if (gridRecycler != null && gridRecycler.getAdapter() != null) {
-                                gridRecycler.getAdapter().notifyDataSetChanged();
-                            }
-                            if (dockRecycler != null && dockRecycler.getAdapter() != null) {
-                                dockRecycler.getAdapter().notifyDataSetChanged();
+                            if (gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
+                            if (dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
+
+                            // Фокус остаётся в сетке на предыдущей позиции
+                            if (gridRecycler != null) {
+                                final int target = Math.max(0, Math.min(removedPos - 1, gridApps.size() - 1));
+                                gridRecycler.post(() -> {
+                                    gridRecycler.scrollToPosition(target);
+                                    RecyclerView.ViewHolder targetVh = gridRecycler.findViewHolderForAdapterPosition(target);
+                                    if (targetVh != null) targetVh.itemView.requestFocus();
+                                    else if (gridRecycler.getChildCount() > 0) gridRecycler.getChildAt(0).requestFocus();
+                                });
                             }
                         }
                     });
@@ -641,6 +608,7 @@ public class MainActivity extends Activity {
                 } else {
                     if (gridApps.contains(item)) return true;
 
+                    int removedPos = vh.getAdapterPosition();
                     AnimatorSet outAnim = new AnimatorSet();
                     ObjectAnimator pressX = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.15f, 0.9f, 0f);
                     ObjectAnimator pressY = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.15f, 0.9f, 0f);
@@ -648,22 +616,26 @@ public class MainActivity extends Activity {
                     outAnim.playTogether(pressX, pressY, fade);
                     outAnim.setDuration(250);
                     outAnim.setInterpolator(new DecelerateInterpolator());
-                    
+
                     outAnim.addListener(new AnimatorListenerAdapter() {
                         @Override
                         public void onAnimationEnd(Animator animation) {
                             dockApps.remove(item);
-                            if (!gridApps.contains(item)) {
-                                gridApps.add(item);
-                            }
+                            if (!gridApps.contains(item)) gridApps.add(item);
                             Collections.sort(gridApps, (a, b) -> a.label.compareToIgnoreCase(b.label));
                             saveFavorites();
-                            
-                            if (dockRecycler != null && dockRecycler.getAdapter() != null) {
-                                dockRecycler.getAdapter().notifyDataSetChanged();
-                            }
-                            if (gridRecycler != null && gridRecycler.getAdapter() != null) {
-                                gridRecycler.getAdapter().notifyDataSetChanged();
+                            if (dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
+                            if (gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
+
+                            // Фокус остаётся в доке на предыдущей позиции
+                            if (dockRecycler != null) {
+                                final int target = Math.max(0, Math.min(removedPos - 1, dockApps.size() - 1));
+                                dockRecycler.post(() -> {
+                                    dockRecycler.scrollToPosition(target);
+                                    RecyclerView.ViewHolder targetVh = dockRecycler.findViewHolderForAdapterPosition(target);
+                                    if (targetVh != null) targetVh.itemView.requestFocus();
+                                    else if (dockRecycler.getChildCount() > 0) dockRecycler.getChildAt(0).requestFocus();
+                                });
                             }
                         }
                     });
@@ -674,11 +646,14 @@ public class MainActivity extends Activity {
 
             vh.root.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
+                    if (isDock) {
+                        lastDockPosition = vh.getAdapterPosition();
+                    }
                     if (vh.scaleAnim != null) vh.scaleAnim.cancel();
                     vh.scaleAnim = new AnimatorSet();
                     ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.12f);
                     ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.12f);
-                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(30 * currentUiScale)));
+                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx(30));
                     vh.scaleAnim.playTogether(sx, sy, sz);
                     vh.scaleAnim.setDuration(350);
                     vh.scaleAnim.setInterpolator(new OvershootInterpolator(1.1f));
@@ -686,7 +661,7 @@ public class MainActivity extends Activity {
 
                     BannerManager.getInstance().updateBackground(MainActivity.this, item.packageName);
                     animateAmbientGlow(item.dominantColor);
-                    
+
                     vh.glareOverlay.animate().alpha(1f).setDuration(300).start();
                     if (vh.shimmerAnim == null) {
                         vh.glareOverlay.setTranslationX(-cardWidth * 1.2f);
@@ -718,7 +693,7 @@ public class MainActivity extends Activity {
                     vh.scaleAnim = new AnimatorSet();
                     ObjectAnimator sx = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.0f);
                     ObjectAnimator sy = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.0f);
-                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx((int)(4 * currentUiScale)));
+                    ObjectAnimator sz = ObjectAnimator.ofFloat(vh.card, "translationZ", dpToPx(4));
                     vh.scaleAnim.playTogether(sx, sy, sz);
                     vh.scaleAnim.setDuration(250);
                     vh.scaleAnim.setInterpolator(new DecelerateInterpolator(1.5f));
@@ -726,7 +701,7 @@ public class MainActivity extends Activity {
 
                     if (vh.shimmerAnim != null) vh.shimmerAnim.cancel();
                     vh.glareOverlay.animate().alpha(0f).setDuration(200).start();
-                    
+
                     if (!isDock) {
                         vh.localLabel.animate().alpha(0f).setDuration(200).start();
                     }
