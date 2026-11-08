@@ -107,6 +107,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        SoundManager.init(this);
 
         prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
 
@@ -659,6 +660,7 @@ public class MainActivity extends Activity {
 
             vh.root.setOnFocusChangeListener((v, hasFocus) -> {
                 if (hasFocus) {
+                    SoundManager.playFocus();
                     if (isDock) {
                         lastDockPosition = vh.getAdapterPosition();
                     }
@@ -730,7 +732,17 @@ public class MainActivity extends Activity {
                 PackageManager pm = getPackageManager();
                 Intent launch = pm.getLeanbackLaunchIntentForPackage(item.packageName);
                 if (launch == null) launch = pm.getLaunchIntentForPackage(item.packageName);
-                if (launch != null) startActivity(launch);
+                if (launch != null) {
+                    try {
+                        android.graphics.Rect rect = new android.graphics.Rect();
+                        vh.card.getGlobalVisibleRect(rect);
+                        android.app.ActivityOptions opts = android.app.ActivityOptions.makeScaleUpAnimation(
+                                vh.card, rect.left, rect.top, rect.width(), rect.height());
+                        startActivity(launch, opts.toBundle());
+                    } catch (Exception e) {
+                        startActivity(launch);
+                    }
+                }
             });
         }
 

@@ -22,7 +22,7 @@ public class SoundManager {
             } else {
                 soundPool = new SoundPool(3, android.media.AudioManager.STREAM_SYSTEM, 0);
             }
-            clickSoundId = soundPool.load(context, R.raw.click, 1);
+            clickSoundId = soundPool.load(context, android.R.raw.blank, 1);
         } catch (Exception ignored) {
             clickSoundId = -1;
         }

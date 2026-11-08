@@ -76,9 +76,11 @@ public class SettingsManager {
 
         if (timeoutMs > 0) {
             sleepRunnable = () -> {
-                WindowManager.LayoutParams dimParams = activity.getWindow().getAttributes();
-                dimParams.screenBrightness = 0.0f;
-                activity.getWindow().setAttributes(dimParams);
+                try {
+                    android.content.Intent i = new android.content.Intent(activity, ScreensaverActivity.class);
+                    i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                    activity.startActivity(i);
+                } catch (Exception ignored) {}
             };
             sleepHandler.postDelayed(sleepRunnable, timeoutMs);
         }

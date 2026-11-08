@@ -39,6 +39,7 @@ public class SettingsActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
+        SoundManager.init(this);
         prefs = getSharedPreferences("tvos_prefs", Context.MODE_PRIVATE);
         dynamicLeftIcon = findViewById(R.id.dynamic_left_icon);
         listContainer = findViewById(R.id.settings_list_container);
@@ -268,6 +269,7 @@ public class SettingsActivity extends Activity {
 
         row.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
+                SoundManager.playFocus();
                 row.setBackgroundResource(R.drawable.bg_settings_row_focused);
                 label.setTextColor(Color.BLACK);
                 arrow.setTextColor(Color.BLACK);

@@ -31,6 +31,12 @@
             android:name=".OnboardingActivity"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
             android:exported="false" />
+
+        <activity
+            android:name=".ScreensaverActivity"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+            android:exported="false"
+            android:launchMode="singleInstance" />
     </application>
 
 </manifest>
