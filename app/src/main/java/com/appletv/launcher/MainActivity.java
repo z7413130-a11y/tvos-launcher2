@@ -560,12 +560,13 @@ public class MainActivity extends Activity {
         ImageView iconImage;
         TextView localLabel;
         View glareOverlay;
+        View borderView;
 
         ObjectAnimator shimmerAnim;
         AnimatorSet scaleAnim;
         ObjectAnimator jiggleAnim;
 
-        public AppViewHolder(LinearLayout root, FrameLayout card, ImageView bgImage, ImageView iconImage, TextView localLabel, View glareOverlay) {
+        public AppViewHolder(LinearLayout root, FrameLayout card, ImageView bgImage, ImageView iconImage, TextView localLabel, View glareOverlay, View borderView) {
             super(root);
             this.root = root;
             this.card = card;
@@ -573,6 +574,7 @@ public class MainActivity extends Activity {
             this.iconImage = iconImage;
             this.localLabel = localLabel;
             this.glareOverlay = glareOverlay;
+            this.borderView = borderView;
         }
 
         public void startJiggle() {
@@ -602,6 +604,7 @@ public class MainActivity extends Activity {
             card.setTranslationZ(dpToPx(4));
             glareOverlay.setAlpha(0f);
             localLabel.setAlpha(0f);
+            if (borderView != null) borderView.setVisibility(View.GONE);
         }
     }
 
@@ -668,6 +671,17 @@ public class MainActivity extends Activity {
             glareOverlay.setAlpha(0f);
             card.addView(glareOverlay);
 
+            // Белая рамка для захвата
+            View borderView = new View(ctx);
+            GradientDrawable borderGd = new GradientDrawable();
+            borderGd.setColor(0x00000000);
+            borderGd.setStroke(dpToPx(2), 0xFFFFFFFF);
+            borderGd.setCornerRadius(dpToPx(12));
+            borderView.setBackground(borderGd);
+            borderView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            borderView.setVisibility(View.GONE);
+            card.addView(borderView);
+
             root.addView(card);
 
             TextView localLabel = new TextView(ctx);
@@ -684,7 +698,7 @@ public class MainActivity extends Activity {
             if (isDock) localLabel.setVisibility(View.GONE);
             root.addView(localLabel);
 
-            return new AppViewHolder(root, card, bgImage, iconImage, localLabel, glareOverlay);
+            return new AppViewHolder(root, card, bgImage, iconImage, localLabel, glareOverlay, borderView);
         }
 
         @Override
@@ -705,7 +719,12 @@ public class MainActivity extends Activity {
                 if (grabbedItem != null && grabbedItem.equals(item)) {
                     vh.card.setScaleX(1.15f);
                     vh.card.setScaleY(1.15f);
+                    vh.borderView.setVisibility(View.VISIBLE);
+                } else {
+                    vh.borderView.setVisibility(View.GONE);
                 }
+            } else {
+                vh.borderView.setVisibility(View.GONE);
             }
 
             if (item.banner != null) {
@@ -732,14 +751,18 @@ public class MainActivity extends Activity {
 
             vh.root.setOnClickListener(v -> {
                 if (isEditMode) {
+                    int pos = vh.getAdapterPosition();
+                    if (pos == RecyclerView.NO_POSITION) return;
                     if (grabbedItem != null && grabbedItem.equals(item)) {
                         grabbedItem = null;
-                        if (gridRecycler != null && gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
-                        if (dockRecycler != null && dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
+                        if (vh.borderView != null) vh.borderView.setVisibility(View.GONE);
+                        vh.card.setScaleX(1.0f);
+                        vh.card.setScaleY(1.0f);
                     } else if (grabbedItem == null) {
                         grabbedItem = item;
                         vh.card.setScaleX(1.15f);
                         vh.card.setScaleY(1.15f);
+                        if (vh.borderView != null) vh.borderView.setVisibility(View.VISIBLE);
                     }
                     return;
                 }
