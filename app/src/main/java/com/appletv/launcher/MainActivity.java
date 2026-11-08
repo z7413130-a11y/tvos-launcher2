@@ -194,7 +194,7 @@ public class MainActivity extends Activity {
                 return false;
             });
 
-            // UP в сетке: если фокус на ПЕРВОМ ряду -> закрыть сетку и перейти на док
+            // UP в сетке: как только фокус дошёл до первого ряда — закрыть сетку, вернуться в док
             gridRecycler.setOnKeyListener((v, keyCode, event) -> {
                 if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
                     View focused = gridRecycler.getFocusedChild();
@@ -202,7 +202,7 @@ public class MainActivity extends Activity {
                         int pos = gridRecycler.getChildAdapterPosition(focused);
                         if (pos >= 0 && pos < columns) { // первый ряд
                             closeGridView();
-                            if (dockRecycler != null) {
+                            if (dockRecycler != null && !dockApps.isEmpty()) {
                                 final int target = Math.min(lastDockPosition, Math.max(0, dockApps.size() - 1));
                                 dockRecycler.post(() -> {
                                     dockRecycler.scrollToPosition(target);
