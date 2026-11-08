@@ -162,7 +162,7 @@ public class MainActivity extends Activity {
         int screenMarginsPx = dpToPx(104);
         int availableWidthPx = screenWidth - screenMarginsPx;
 
-        int columns = 6;
+        final int columns = 6;
         int itemCellWidthPx = availableWidthPx / columns;
 
         int itemMarginPx = dpToPx(8);
@@ -176,14 +176,17 @@ public class MainActivity extends Activity {
             dockRecycler.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
             dockRecycler.setAdapter(new TvosAppAdapter(dockApps, true, cardWidthPx, cardHeightPx, itemMarginPx));
 
-            // DOWN в доке -> открыть сетку, фокус на первый элемент
+            // DOWN в доке -> сразу открыть всю сетку (скролл + фокус на 1-й элемент)
             dockRecycler.setOnKeyListener((v, keyCode, event) -> {
                 if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
                     openGridView();
-                    if (gridRecycler != null) {
+                    scrollToGrid();
+                    if (gridRecycler != null && !gridApps.isEmpty()) {
                         gridRecycler.post(() -> {
                             gridRecycler.scrollToPosition(0);
-                            if (gridRecycler.getChildCount() > 0) gridRecycler.getChildAt(0).requestFocus();
+                            RecyclerView.ViewHolder vh = gridRecycler.findViewHolderForAdapterPosition(0);
+                            if (vh != null) vh.itemView.requestFocus();
+                            else if (gridRecycler.getChildCount() > 0) gridRecycler.getChildAt(0).requestFocus();
                         });
                     }
                     return true;
@@ -191,7 +194,7 @@ public class MainActivity extends Activity {
                 return false;
             });
 
-            // UP в сетке на первом ряду -> вернуться в док
+            // UP в сетке: если фокус на ПЕРВОМ ряду -> закрыть сетку и перейти на док
             gridRecycler.setOnKeyListener((v, keyCode, event) -> {
                 if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
                     View focused = gridRecycler.getFocusedChild();
@@ -217,10 +220,19 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** Прокрутить ScrollView так, чтобы сетка была видна целиком под доком. */
+    private void scrollToGrid() {
+        if (mainScrollView == null || gridRecycler == null) return;
+        mainScrollView.post(() -> {
+            int target = gridRecycler.getTop() - dpToPx(16);
+            if (target < 0) target = 0;
+            mainScrollView.smoothScrollTo(0, target);
+        });
+    }
+
     private void openGridView() {
         if (isGridViewOpen) return;
         isGridViewOpen = true;
-
         if (gridDarkOverlay != null) {
             gridDarkOverlay.animate().alpha(1f).setDuration(300).start();
         }
@@ -229,7 +241,6 @@ public class MainActivity extends Activity {
     private void closeGridView() {
         if (!isGridViewOpen) return;
         isGridViewOpen = false;
-
         if (gridDarkOverlay != null) {
             gridDarkOverlay.animate().alpha(0f).setDuration(300).start();
         }
