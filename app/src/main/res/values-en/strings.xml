@@ -54,8 +54,4 @@
     <string name="toast_cant_open">Could not open</string>
     <string name="toast_choose_launcher">Choose a launcher in the window</string>
     <string name="toast_open_default_apps">Open \"Home screen\" and choose a launcher</string>
-    <string name="settings_theme">Theme</string>
-    <string name="theme_dark">Dark</string>
-    <string name="theme_light">Light</string>
-    <string name="theme_changed">Theme changed. Home screen will update.</string>
 </resources>

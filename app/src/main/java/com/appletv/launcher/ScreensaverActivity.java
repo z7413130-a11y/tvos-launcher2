@@ -34,7 +34,6 @@ public class ScreensaverActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_screensaver);
-        ThemeManager.applyBackground(findViewById(android.R.id.content), this);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 

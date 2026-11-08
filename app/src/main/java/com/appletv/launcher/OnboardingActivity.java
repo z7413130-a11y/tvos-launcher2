@@ -35,7 +35,6 @@ public class OnboardingActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_onboarding);
-        ThemeManager.applyBackground(findViewById(android.R.id.content), this);
         SharedPreferences prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         if (prefs.getBoolean(KEY_DONE, false)) { finish(); return; }
         titleView = findViewById(R.id.onboarding_title);

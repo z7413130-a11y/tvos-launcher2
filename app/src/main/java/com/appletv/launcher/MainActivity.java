@@ -114,9 +114,6 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         SoundManager.init(this);
-        ThemeManager.applyBackground(findViewById(android.R.id.content), this);
-
-        // Док
         if (dockContainer != null) dockContainer.setBackground(ThemeManager.dockBackground(this));
         // Status pill
         if (timePillContainer != null) timePillContainer.setBackground(ThemeManager.statusPill(this));
@@ -169,14 +166,6 @@ public class MainActivity extends Activity {
         SettingsManager.applyBackgroundMode(this);
         SettingsManager.applyClockVisibility(this);
         SettingsManager.startSleepTimer(this);
-        // Тема: обновить фон и элементы (если изменилась)
-        ThemeManager.applyBackground(findViewById(android.R.id.content), this);
-        if (dockContainer != null) dockContainer.setBackground(ThemeManager.dockBackground(this));
-        if (timePillContainer != null) timePillContainer.setBackground(ThemeManager.statusPill(this));
-        View clock = findViewById(R.id.main_text_clock);
-        if (clock instanceof android.widget.TextClock) {
-            ((android.widget.TextClock) clock).setTextColor(ThemeManager.clockText(this));
-        }
         setupDynamicGrid();
     }
 
@@ -561,23 +550,12 @@ public class MainActivity extends Activity {
 
     private void animateAmbientGlow(int targetColor) {
         if (ambientGlowBg == null) return;
-        int adjusted = targetColor;
-        if (ThemeManager.isLight(this)) {
-            // В светлой теме — ярче и насыщеннее
-            float[] hsv = new float[3];
-            Color.colorToHSV(targetColor, hsv);
-            hsv[1] = Math.min(1f, hsv[1] * 1.6f);
-            hsv[2] = Math.min(1f, hsv[2] * 1.15f);
-            adjusted = Color.HSVToColor(hsv);
-        }
-        int endColor = ThemeManager.isLight(this) ? 0xFFF5F5F7 : 0xFF050508;
-        final int target = adjusted;
-        ValueAnimator colorAnim = ValueAnimator.ofObject(new ArgbEvaluator(), currentGlowColor, adjusted);
+        ValueAnimator colorAnim = ValueAnimator.ofObject(new ArgbEvaluator(), currentGlowColor, targetColor);
         colorAnim.setDuration(350);
         colorAnim.addUpdateListener(animator -> {
             int c = (int) animator.getAnimatedValue();
             currentGlowColor = c;
-            GradientDrawable gd = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{c, endColor});
+            GradientDrawable gd = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{c, 0xFF050508});
             ambientGlowBg.setBackground(gd);
         });
         colorAnim.start();
@@ -896,7 +874,6 @@ public class MainActivity extends Activity {
                     if (isDock) {
                         if (heroTitle != null && !isEditMode) {
                             heroTitle.animate().alpha(1f).setDuration(200).start();
-                            heroTitle.setTextColor(ThemeManager.textPrimary(MainActivity.this));
                             heroTitle.setText(item.label);
                         }
                         if (timePillContainer != null) timePillContainer.animate().alpha(1f).setDuration(200).start();
