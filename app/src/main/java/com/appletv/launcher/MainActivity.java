@@ -574,6 +574,8 @@ public class MainActivity extends Activity {
                     if (dockApps.contains(item)) return true;
 
                     int removedPos = vh.getAdapterPosition();
+                    if (removedPos == RecyclerView.NO_POSITION) return true;
+
                     AnimatorSet outAnim = new AnimatorSet();
                     ObjectAnimator pressX = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.15f, 0.9f, 0f);
                     ObjectAnimator pressY = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.15f, 0.9f, 0f);
@@ -591,8 +593,7 @@ public class MainActivity extends Activity {
                             if (gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
                             if (dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
 
-                            // Фокус остаётся в сетке на предыдущей позиции
-                            if (gridRecycler != null) {
+                            if (gridRecycler != null && !gridApps.isEmpty()) {
                                 final int target = Math.max(0, Math.min(removedPos - 1, gridApps.size() - 1));
                                 gridRecycler.post(() -> {
                                     gridRecycler.scrollToPosition(target);
@@ -609,6 +610,8 @@ public class MainActivity extends Activity {
                     if (gridApps.contains(item)) return true;
 
                     int removedPos = vh.getAdapterPosition();
+                    if (removedPos == RecyclerView.NO_POSITION) return true;
+
                     AnimatorSet outAnim = new AnimatorSet();
                     ObjectAnimator pressX = ObjectAnimator.ofFloat(vh.card, "scaleX", 1.15f, 0.9f, 0f);
                     ObjectAnimator pressY = ObjectAnimator.ofFloat(vh.card, "scaleY", 1.15f, 0.9f, 0f);
@@ -627,8 +630,7 @@ public class MainActivity extends Activity {
                             if (dockRecycler.getAdapter() != null) dockRecycler.getAdapter().notifyDataSetChanged();
                             if (gridRecycler.getAdapter() != null) gridRecycler.getAdapter().notifyDataSetChanged();
 
-                            // Фокус остаётся в доке на предыдущей позиции
-                            if (dockRecycler != null) {
+                            if (dockRecycler != null && !dockApps.isEmpty()) {
                                 final int target = Math.max(0, Math.min(removedPos - 1, dockApps.size() - 1));
                                 dockRecycler.post(() -> {
                                     dockRecycler.scrollToPosition(target);

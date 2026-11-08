@@ -46,11 +46,8 @@ public class SettingsActivity extends Activity {
         loadMenu(MenuState.MAIN, false);
     }
 
-    /** Единая точка входа. push=true — запомнить текущее состояние в стек. */
     private void loadMenu(MenuState state, boolean push) {
-        if (push && currentState != state) {
-            backStack.push(currentState);
-        }
+        if (push && currentState != state) backStack.push(currentState);
         currentState = state;
         switch (state) {
             case MAIN: loadMainMenu(); break;
@@ -288,12 +285,8 @@ public class SettingsActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (backStack.isEmpty()) {
-            super.onBackPressed();
-        } else {
-            MenuState previous = backStack.pop();
-            loadMenu(previous, false);
-        }
+        if (backStack.isEmpty()) super.onBackPressed();
+        else loadMenu(backStack.pop(), false);
     }
 
     @Override
